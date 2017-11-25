@@ -1,5 +1,7 @@
 #ifndef BB_H
 #define BB_H
+#include <vector>
+#include <set>
 #include <stdint.h>
 typedef uint64_t U64;
 U64 pawn_attacks(U64 pawns);

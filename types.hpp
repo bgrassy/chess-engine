@@ -6,10 +6,12 @@ namespace types {
         Bishop,
         Rook,
         Queen, 
-        King
+        King,
+        None
     };
     enum class color {
         White,
-        Black
+        Black,
+        None
     };
 }

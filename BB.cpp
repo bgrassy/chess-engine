@@ -1,6 +1,4 @@
-#include <stdint.h>
-#include <vector>
-#include <set>
+#include "BB.hpp"
 
 typedef uint64_t U64;
 const U64 Rank1 = 0xFF;
@@ -19,7 +17,6 @@ const U64 EFile = 0x1010101010101010;
 const U64 FFile = 0x2020202020202020;
 const U64 GFile = 0x4040404040404040;
 const U64 HFile = 0x8080808080808080;
-
 // Takes a bitboard corresponding to pawn locations. Returns the set of squares that are attacked by them.
 U64 pawn_attacks(U64 pawns) {
     U64 b = (pawns << 7) & ~HFile;
