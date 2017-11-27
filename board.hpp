@@ -10,7 +10,9 @@ using namespace types;
 typedef uint64_t U64;
 
 class board {
-        bool white_move;
+        bool kingMoved[2];
+        bool rookMoved[4];
+        bool whiteMove;
         U64 pieceBB[8];
         U64 lookup[64];
     public:

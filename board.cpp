@@ -1,7 +1,7 @@
 #include "board.hpp"
 
 board::board() {
-    white_move = true;
+    whiteMove = true;
     pieceBB[0] = 0x000000000000FFFF; // white pieces
     pieceBB[1] = 0xFFFF000000000000; // black pieces
     pieceBB[2] = 0x00FF00000000FF00; // pawns
@@ -107,16 +107,31 @@ bool board::inBetween(unsigned int square1, unsigned int square2) {
 } 
 
 bool board::legalMove(class move m) {
-    int start = m.start;
-    int end = m.end;
-    color c = m.c;
+    int start = m.getStart();
+    int end = m.getEnd();
+    bool capture = m.getCapture();
+    bool prom = m.getProm();
+    int type = m.getType();
+    piece p = getPiece(start);
+    color c = getColor(start);
     color opp = (color) (((int)c+1)%2);
-    piece p = m.p;
     U64 startBB = lookup[start];
     U64 endBB = lookup[end];
+    if (getPiece(start) == piece::None) {
+        return false;
+    } 
+    if (whiteMove != (c == color::White)) {
+        return false;
+    }
+    if (capture && (getColor(end) != opp)) {
+        return false;
+    }
+    if (prom && (!(startBB & Rank7) || (p != piece::Pawn))) {
+        return false;
+    }
 
-    // checks if the piece is in the valid square or if the end piece is the same color
-    if (c != getColor(start) || p != getPiece(start) || c == getColor(end)) {
+    // checks if the end piece is the same color
+    if (c == getColor(end)) {
         return false;
     }
     if (inBetween(start, end)) {
@@ -126,11 +141,35 @@ bool board::legalMove(class move m) {
     if (start == end) {
         return false;
     }
+
+    if (!prom && !capture && ((type >> 1) == 1)) { // castling
+        if (c == color::White) {
+            if (p != piece::King || kingMoved[0]) {
+                return false;
+            }
+            if (end == 2) {
+                return rookMoved[2] && ((type & 1) == 1);            
+            } else if (end == 6) {
+                return rookMoved[0] && ((type & 1) == 0);
+            }
+        } else {
+            if (p != piece::King || kingMoved[1]) {
+                return false;
+            }
+            if (end == 58) {
+                return rookMoved[2] && ((type & 1) == 1);            
+            } else if (end == 60) {
+                return rookMoved[0] && ((type & 1) == 0);
+            }
+        }
+    }
     if (p == piece::Pawn) {
-        if (pawn_moves(startBB) & endBB){
-            return getPiece(end) == piece::None;
-        } else if (pawn_attacks(startBB) & endBB) {
-            return getColor(end) == opp;
+        if (capture) {
+            return pawn_attacks(startBB, c) & endBB; 
+        } else {
+            if (pawn_moves(startBB, c) & endBB){
+                return getPiece(end) == piece::None;
+            }   
         }
     } else if (p == piece::Knight) {
         return knight_attacks(startBB) & endBB;
@@ -147,42 +186,51 @@ bool board::legalMove(class move m) {
 }
 
 bool board::inCheck() {
-    if (getPieces(color::White, piece::King) & (pawn_attacks(getPieces(color::Black, piece::Pawn)) | 
-            knight_attacks(getPieces(color::Black, piece::Knight)))) {
+    color c;
+    color opp;
+    if (whiteMove) {
+        c = color::White;
+        opp = color::Black;
+    } else {
+        c = color::Black;
+        opp = color::White;
+    }
+    if (getPieces(c, piece::King) & (pawn_attacks(getPieces(opp, piece::Pawn), c) | 
+            knight_attacks(getPieces(opp, piece::Knight)))) {
         return true;
-    } else if (getPieces(color::White, piece::King) & bishop_attacks(getPieces(color::Black, piece::Bishop))) {
-        U64 b = getPieces(color::Black, piece::Bishop); 
+    } else if (getPieces(c, piece::King) & bishop_attacks(getPieces(opp, piece::Bishop))) {
+        U64 b = getPieces(opp, piece::Bishop); 
         int count = 0;
         while (b > 0) {
             if (b & 1) {
                 U64 bishop = lookup[count];
-                if (!inBetween(getPieces(color::White, piece::King), bishop)) {
+                if (!inBetween(getPieces(c, piece::King), bishop)) {
                     return true;
                 }
                 b >>= 1;
                 ++count;
             }
         }
-    } else if (getPieces(color::White, piece::King) & rook_attacks(getPieces(color::Black, piece::Rook))) {
-        U64 b = getPieces(color::Black, piece::Rook); 
+    } else if (getPieces(c, piece::King) & rook_attacks(getPieces(opp, piece::Rook))) {
+        U64 b = getPieces(opp, piece::Rook); 
         int count = 0;
         while (b > 0) {
             if (b & 1) {
                 U64 rook = lookup[count];
-                if (!inBetween(getPieces(color::White, piece::King), rook)) {
+                if (!inBetween(getPieces(c, piece::King), rook)) {
                     return true;
                 }
                 b >>= 1;
                 ++count;
             }
         }
-    } else if (getPieces(color::White, piece::King) & queen_attacks(getPieces(color::Black, piece::Queen))) {
-        U64 b = getPieces(color::Black, piece::Queen); 
+    } else if (getPieces(c, piece::King) & queen_attacks(getPieces(opp, piece::Queen))) {
+        U64 b = getPieces(opp, piece::Queen); 
         int count = 0;
         while (b > 0) {
             if (b & 1) {
                 U64 queen = lookup[count];
-                if (!inBetween(getPieces(color::White, piece::King), queen)) {
+                if (!inBetween(getPieces(c, piece::King), queen)) {
                     return true;
                 }
                 b >>= 1;
@@ -214,11 +262,90 @@ piece board::getPiece(unsigned int square) {
 }
 
 void board::move(class move m) {
-    int square1 = m.start;
-    int square2 = m.end;
-    if (legalMove(m)) {
-       piece p = getPiece(square1);  
-       color c = getColor(square1);
+    int start = m.getStart();
+    int end = m.getEnd();
+    int flags = m.getFlags();
+    U64 startBB = lookup[start];
+    U64 endBB = lookup[end];
+    bool capture = m.getCapture();
+    bool prom = m.getProm();
+    int type = m.getType();
+    piece startP = getPiece(start);
+    color startC = getColor(start);
+    piece endP = getPiece(end);
+    color endC = getColor(end);
+    bool tempWhiteMove = whiteMove;
+    int tempPieceBB[8];
+    int tempKingMoved[2];
+    int tempRookMoved[4];
+    std::copy(pieceBB, pieceBB + 8, tempPieceBB);
+    std::copy(kingMoved, kingMoved + 2, tempKingMoved);
+    std::copy(rookMoved, rookMoved + 4, tempRookMoved);
+    if (!legalMove(m)) { return;}
+    if (startP == piece::Rook) {
+        if (start == 0) {
+            rookMoved[1] = true;
+        } else if (start == 7) {
+            rookMoved[0] = true;
+        } else if (start == 54) {
+            rookMoved[3] = true;
+        } else {
+            rookMoved[2] = true;
+        }
+    }
+    if (startP == piece::King) {
+        kingMoved[(int) startC] = true;
+    }
+    if (flags == 0) { // normal move
+        //std::cout << startBB << std::endl;
+        //std::cout << pieceBB[(int)startP + 2] << std::endl;
+        pieceBB[(int)startP + 2] ^= (startBB | endBB); 
+        pieceBB[(int)startC] ^= (startBB | endBB);
+        //std::cout << pieceBB[(int)startP + 2] << std::endl;
+    } else if (prom) {
+        int promPiece = 3 + (type & 3);
+        if (capture) {
+            pieceBB[(int) endC] ^= endBB;
+            pieceBB[(int) endP + 2] ^= endBB;
+        }
+        pieceBB[promPiece] ^= endBB;
+        pieceBB[2] ^= startBB;
+        pieceBB[(int)startC] ^= (startBB | endBB);
+    } else if (((type >> 1) & 1) == 1) { // castling
+        U64 rookBB;
+        pieceBB[7] ^= (startBB | endBB);  
+        pieceBB[(int) startC] ^= (startBB | endBB);
+        if ((type & 1) == 0) {
+            if (startC == color::White) {
+                rookBB = lookup[5] ^ lookup[7];
+            } else {
+                rookBB = lookup[61] ^ lookup[63];
+            }
+            pieceBB[5] ^= rookBB;
+            pieceBB[(int) startC] ^= rookBB;
+            rookMoved[2 * (int)startC] = true;
+        } else {
+            if (startC == color::White) {
+                rookBB = lookup[0] ^ lookup[3];
+            } else {
+                rookBB = lookup[54] ^ lookup[57];
+            }
+            pieceBB[5] ^= rookBB;
+            pieceBB[(int) startC] ^= rookBB;
+            rookMoved[1 + 2 * (int)startC] = true;
+        }
+    } else { // captures
+        pieceBB[(int) endP + 2] ^= endBB;    
+        pieceBB[(int) endC] ^= endBB;
+        pieceBB[(int) startP + 2] ^= (startBB | endBB);
+        pieceBB[(int) startC] ^= (startBB | endBB);
+    }
+    whiteMove = !whiteMove;
+    if (inCheck()) {
+        std::copy(tempPieceBB, tempPieceBB + 8, pieceBB);
+        std::copy(tempKingMoved, tempKingMoved + 2, kingMoved);
+        std::copy(tempRookMoved, tempRookMoved + 4, rookMoved);
+        whiteMove = tempWhiteMove;
     }
 }
 

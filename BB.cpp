@@ -1,32 +1,27 @@
 #include "BB.hpp"
 
 typedef uint64_t U64;
-const U64 Rank1 = 0xFF;
-const U64 Rank2 = 0xFF00;
-const U64 Rank3 = 0xFF0000;
-const U64 Rank4 = 0xFF000000;
-const U64 Rank5 = 0xFF00000000;
-const U64 Rank6 = 0xFF0000000000;
-const U64 Rank7 = 0xFF000000000000;
-const U64 Rank8 = 0xFF00000000000000;
-const U64 AFile = 0x0101010101010101;
-const U64 BFile = 0x0202020202020202;
-const U64 CFile = 0x0404040404040404;
-const U64 DFile = 0x0808080808080808;
-const U64 EFile = 0x1010101010101010;
-const U64 FFile = 0x2020202020202020;
-const U64 GFile = 0x4040404040404040;
-const U64 HFile = 0x8080808080808080;
 // Takes a bitboard corresponding to pawn locations. Returns the set of squares that are attacked by them.
-U64 pawn_attacks(U64 pawns) {
-    U64 b = (pawns << 7) & ~HFile;
-    return b | ((pawns << 9) & ~AFile);
+U64 pawn_attacks(U64 pawns, color c) {
+    if (c == color::White) {
+        U64 b = (pawns << 7) & ~HFile;
+        return b | ((pawns << 9) & ~AFile);
+    } else {
+        U64 b = (pawns >> 7) & ~AFile;
+        return b | ((pawns >> 9) & ~HFile);
+
+    }
 }
 
 // Takes a bitboard corresponding to pawn locations. Returns the set of squares the pawns can move to.
-U64 pawn_moves(U64 pawns) {
-    U64 b = pawns << 8;
-    return b | ((pawns & Rank2) << 16); 
+U64 pawn_moves(U64 pawns, color c) {
+    if (c == color::White) {
+        U64 b = pawns << 8;
+        return b | ((pawns & Rank2) << 16); 
+    } else {
+        U64 b = pawns >> 8;
+        return b | ((pawns & Rank7) >> 16); 
+    }
 }
 
 // Takes a bitboard corresponding to knight locations. Returns the set of squares the knights can move to.

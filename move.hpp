@@ -1,11 +1,16 @@
-#include "types.hpp"
-
-using namespace types;
 class move {
+        unsigned int start;
+        unsigned int end;
+        unsigned int flags;
+        bool capture;
+        bool promotion;
+        int type;
     public:
-        int start;
-        int end;
-        piece p;
-        color c;
-        move(int start, int end, color C, piece P);
+        move(unsigned int start, unsigned int end, unsigned int flags);
+        int getStart();
+        int getEnd();
+        int getFlags();
+        bool getCapture();
+        bool getProm();
+        int getType();
 };
