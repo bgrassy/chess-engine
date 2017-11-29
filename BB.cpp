@@ -14,14 +14,21 @@ U64 pawn_attacks(U64 pawns, color c) {
 }
 
 // Takes a bitboard corresponding to pawn locations. Returns the set of squares the pawns can move to.
-U64 pawn_moves(U64 pawns, color c) {
+U64 single_pawn_moves(U64 pawns, color c) {
     if (c == color::White) {
-        U64 b = pawns << 8;
-        return b | ((pawns & Rank2) << 16); 
+        return pawns << 8;
     } else {
-        U64 b = pawns >> 8;
-        return b | ((pawns & Rank7) >> 16); 
+        return pawns >> 8;
     }
+}
+
+U64 double_pawn_moves(U64 pawns, color c) {
+    if (c == color::White) {
+        return (pawns & Rank2) << 16; 
+    } else {
+        return (pawns & Rank7) >> 16; 
+    }
+
 }
 
 // Takes a bitboard corresponding to knight locations. Returns the set of squares the knights can move to.

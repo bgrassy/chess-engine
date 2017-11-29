@@ -128,7 +128,7 @@ bool board::legalMove(class move m) {
     if (whiteMove != (c == color::White)) {
         return false;
     }
-    if (capture && (getColor(end) != opp)) {
+    if (capture && (getColor(end) != opp) && (p != piece::Pawn)) {
         return false;
     }
 
@@ -175,9 +175,26 @@ bool board::legalMove(class move m) {
     }
     if (p == piece::Pawn) {
         if (capture) {
+            if (type == 1) { // en passant
+                if (lastMove.getFlags() == 1) {
+                    if (c == color::White) {
+                        return (lastMove.getEnd() == end - 8) && (pawn_attacks(startBB, c) & endBB);
+                    } else {
+                        return (lastMove.getEnd() == end + 8) && (pawn_attacks(startBB, c) & endBB);
+                    }
+                }
+            }
+            
+            if (capture && (getColor(end) != opp)) {
+                return false;
+            }
             return pawn_attacks(startBB, c) & endBB; 
         } else {
-            return pawn_moves(startBB, c) & endBB;
+            if (type == 0) {
+                return single_pawn_moves(startBB, c) & endBB;
+            } else if (type == 1) {
+                return double_pawn_moves(startBB, c) & endBB;
+            }
         }
     } else if (p == piece::Knight) {
         return knight_attacks(startBB) & endBB;
@@ -268,6 +285,25 @@ piece board::getPiece(unsigned int square) {
     return piece::None;
 }
 
+bool board::inCheck() {
+    color c, opp;    
+    if (whiteMove) {
+        c = color::White;
+        opp = color::Black;
+    } else {
+        c = color::Black;
+        opp = color::White;
+    }
+    U64 kingLoc = getPieces(c, piece::King);
+    int kingSquare = 0;
+    while (kingLoc > 1) {
+        kingSquare++;
+        kingLoc >>= 1;
+    } 
+    return attacked(kingSquare, opp);
+     
+}
+
 bool board::makeMove(move m) {
     int start = m.getStart();
     int end = m.getEnd();
@@ -296,7 +332,7 @@ bool board::makeMove(move m) {
         kingLoc >>= 1;
     } 
     if (!legalMove(m)) { return false;}
-    if (flags == 0) { // normal move
+    if (flags == 0 || flags == 1) { // normal move
         //std::cout << startBB << std::endl;
         //std::cout << pieceBB[(int)startP + 2] << std::endl;
         pieceBB[(int)startP + 2] ^= (startBB | endBB); 
@@ -315,9 +351,9 @@ bool board::makeMove(move m) {
         U64 rookBB;
         pieceBB[7] ^= (startBB | endBB);  
         pieceBB[(int) startC] ^= (startBB | endBB);
-        if (!attacked(kingSquare, startC)) {
+        if (!inCheck()) {
             if ((type & 1) == 0) {
-                if (attacked(kingSquare + 1, startC) || attacked(kingSquare + 2, startC)) {
+                if (attacked(kingSquare + 1, opp) || attacked(kingSquare + 2, opp)) {
                     if (startC == color::White) {
                         rookBB = lookup[5] ^ lookup[7];
                     } else {
@@ -328,7 +364,7 @@ bool board::makeMove(move m) {
                     rookMoved[2 * (int)startC] = true;
                 }
             } else {
-                if (attacked(kingSquare - 1, startC) || attacked(kingSquare - 2, startC)) {
+                if (attacked(kingSquare - 1, opp) || attacked(kingSquare - 2, opp)) {
                     if (startC == color::White) {
                         rookBB = lookup[0] ^ lookup[3];
                     } else {
@@ -341,10 +377,25 @@ bool board::makeMove(move m) {
             }
         }
     } else { // captures
-        pieceBB[(int) endP + 2] ^= endBB;    
-        pieceBB[(int) endC] ^= endBB;
-        pieceBB[(int) startP + 2] ^= (startBB | endBB);
-        pieceBB[(int) startC] ^= (startBB | endBB);
+        if (type == 0) {
+            pieceBB[(int) endP + 2] ^= endBB;    
+            pieceBB[(int) endC] ^= endBB;
+            pieceBB[(int) startP + 2] ^= (startBB | endBB);
+            pieceBB[(int) startC] ^= (startBB | endBB);
+        } else {
+            endP = piece::Pawn;
+            if (startC == color::White) {
+                endC = color::Black;
+                pieceBB[(int) endP + 2] ^= lookup[end - 8];    
+                pieceBB[(int) endC] ^= lookup[end - 8];
+            } else {
+                endC = color::White;
+                pieceBB[(int) endP + 2] ^= lookup[end + 8];    
+                pieceBB[(int) endC] ^= lookup[end + 8];
+            }
+            pieceBB[(int) startP + 2] ^= (startBB | endBB);
+            pieceBB[(int) startC] ^= (startBB | endBB);
+        }
     }
     if (startP == piece::Rook) {
         if (start == 0) {
@@ -367,16 +418,18 @@ bool board::makeMove(move m) {
         kingLoc >>= 1;
     } 
     
-    if (attacked(kingSquare, opp) || attacked(newKingSquare, opp)) {
+    if (attacked(newKingSquare, opp)) {
         std::copy(tempPieceBB, tempPieceBB + 8, pieceBB);
         std::copy(tempKingMoved, tempKingMoved + 2, kingMoved);
         std::copy(tempRookMoved, tempRookMoved + 4, rookMoved);
         return false;
     }
     whiteMove = !whiteMove;
+    lastMove = move(start, end, flags);
     return true;
 }
 
+// Returns a vector of the possible moves.
 std::vector<move> board::getLegalMoves() {
     U64 pieces; 
     color c;
@@ -396,20 +449,22 @@ std::vector<move> board::getLegalMoves() {
             piece p = getPiece(count);
             if (p == piece::Pawn) {
                 U64 pawnAttacks = pawn_attacks(pBB, c);
-                U64 pawnMoves = pawn_moves(pBB, c);
+                U64 pawnMoves = single_pawn_moves(pBB, c) | double_pawn_moves(pBB, c);
                 int attCount = 0;
                 int moveCount = 0;
                 while (pawnAttacks > 0) {
                     if ((pawnAttacks & 1) == 1) {
-                        for (int i = 12; i <= 15; i++) {
+                        for (int i = 8; i <= 11; i++) {
                             move m(count, attCount, i);
                             if (legalMove(m)) {
                                 moves.push_back(m);
                             }
                         }
-                        move m(count, attCount, 8);
-                        if (legalMove(m)) {
-                            moves.push_back(m);
+                        for (int i = 4; i <= 5; i++) {
+                            move m(count, attCount, i);
+                            if (legalMove(m)) {
+                                moves.push_back(m);
+                            }
                         }
                     }
                     attCount++;
@@ -417,16 +472,18 @@ std::vector<move> board::getLegalMoves() {
                 }
                 while (pawnMoves > 0) {
                     if ((pawnMoves & 1) == 1) {
-                        for (int i = 8; i <= 11; i++) {
+                        for (int i = 12; i <= 15; i++) {
                             move m(count, moveCount, i);
                             if (legalMove(m)) {
                                 moves.push_back(m);
                             }
                         }
-                        move m(count, moveCount, 0);
-                        if (legalMove(m)) {
-                            moves.push_back(m);
-                        }
+                        for (int i = 0; i <= 1; i++) {
+                            move m(count, moveCount, i);
+                            if (legalMove(m)) {
+                                moves.push_back(m);
+                            }
+                        } 
                     }
                     moveCount++;
                     pawnMoves >>= 1;
@@ -440,7 +497,7 @@ std::vector<move> board::getLegalMoves() {
                         if (legalMove(m)) {
                             moves.push_back(m);
                         }
-                        m = move(count, moveCount, 8);
+                        m = move(count, moveCount, 4);
                         if (legalMove(m)) {
                             moves.push_back(m);
                         }
@@ -457,7 +514,7 @@ std::vector<move> board::getLegalMoves() {
                         if (legalMove(m)) {
                             moves.push_back(m);
                         }
-                        m = move(count, moveCount, 8);
+                        m = move(count, moveCount, 4);
                         if (legalMove(m)) {
                             moves.push_back(m);
                         }
@@ -474,7 +531,7 @@ std::vector<move> board::getLegalMoves() {
                         if (legalMove(m)) {
                             moves.push_back(m);
                         }
-                        m = move(count, moveCount, 8);
+                        m = move(count, moveCount, 4);
                         if (legalMove(m)) {
                             moves.push_back(m);
                         }
@@ -491,7 +548,7 @@ std::vector<move> board::getLegalMoves() {
                         if (legalMove(m)) {
                             moves.push_back(m);
                         }
-                        m = move(count, moveCount, 8);
+                        m = move(count, moveCount, 4);
                         if (legalMove(m)) {
                             moves.push_back(m);
                         }
@@ -508,7 +565,7 @@ std::vector<move> board::getLegalMoves() {
                         if (legalMove(m)) {
                             moves.push_back(m);
                         }
-                        m = move(count, moveCount, 8);
+                        m = move(count, moveCount, 4);
                         if (legalMove(m)) {
                             moves.push_back(m);
                         }

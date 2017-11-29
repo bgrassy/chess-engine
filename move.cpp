@@ -4,8 +4,8 @@ move::move(unsigned int s, unsigned int e, unsigned int f) {
     start = s; 
     end = e;
     flags = f;
-    capture = (f >> 3) & 1;
-    promotion = (f >> 2) & 1;
+    capture = (f >> 2) & 1;
+    promotion = (f >> 3) & 1;
     type = f & 3;
 }
 

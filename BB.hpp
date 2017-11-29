@@ -25,8 +25,9 @@ const U64 GFile = 0x4040404040404040;
 const U64 HFile = 0x8080808080808080;
 U64 pawn_attacks(U64 pawns, color c);
 
-U64 pawn_moves(U64 pawns, color c);
+U64 single_pawn_moves(U64 pawns, color c);
 
+U64 double_pawn_moves(U64 pawns, color c);
 // Takes a bitboard corresponding to knight locations. Returns the set of squares the knights can move to.
 U64 knight_attacks(U64 knights);
 

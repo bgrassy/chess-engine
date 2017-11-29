@@ -14,6 +14,7 @@ class board {
         bool kingMoved[2] = {false, false};
         bool rookMoved[4] = {false, false, false, false};
         bool whiteMove = true;
+        move lastMove = move(0, 0, 0);
         U64 pieceBB[8];
         U64 lookup[64];
         std::vector<class move> legalMoves;
@@ -51,6 +52,8 @@ class board {
         color getColor(unsigned int square);
 
         piece getPiece(unsigned int square);
+
+        bool inCheck();
 
         bool makeMove(move m);
 
