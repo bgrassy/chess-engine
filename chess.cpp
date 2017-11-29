@@ -29,18 +29,14 @@ void game(board BOARD) {
                 move M(start, end, flags);
                 std::cout << BOARD.legalMove(M) << std::endl;
                 goodMove = BOARD.makeMove(M);
+                if (!goodMove) {
+                    std::cout << "Illegal move!" << std::endl;
+                }
                 std::cout << std::bitset<64>(BOARD.getPieces(color::White)) << '\n';
                 std::cout << std::bitset<64>(BOARD.getPieces(color::Black)) << '\n';
             }
         }
         std::cout << "computer's move..." << std::endl;
-/*        std::cout << "legal moves" << std::endl;
-        std::vector<move> moves = BOARD.getLegalMoves();
-        std::cout << moves.size() << std::endl;
-        for (auto mov : moves) {
-            std::cout << mov.toString() << std::endl;
-        }
-        */
         std::vector<move> legal = BOARD.getLegalMoves();
         std::random_shuffle(legal.begin(), legal.end());
         while (legal.size() > 0) {
@@ -61,6 +57,34 @@ void game(board BOARD) {
         std::cout << std::bitset<64>(BOARD.getPieces(color::Black)) << '\n';
     }
 }
+/*
+void game(board BOARD) {
+    srand(time(NULL));
+    std::string mov = "";
+    while (mov != "q") {
+        int start, end, flags;
+        bool goodMove = false;
+        while (!goodMove) {
+            std::cout << "move: " << std::endl;
+            std::getline(std::cin, mov);
+            std::stringstream os(mov);
+            os >> start;
+            os >> end;
+            os >> flags;
+            if (mov != "q") {
+                move M(start, end, flags);
+                std::cout << BOARD.legalMove(M) << std::endl;
+                goodMove = BOARD.makeMove(M);
+                if (!goodMove) {
+                    std::cout << "Illegal move!" << std::endl;
+                }
+                std::cout << std::bitset<64>(BOARD.getPieces(color::White)) << '\n';
+                std::cout << std::bitset<64>(BOARD.getPieces(color::Black)) << '\n';
+            }
+        }
+    }
+}*/
+
 int main() {
     board BOARD;
     move m(50, 42, 0b0000);
@@ -76,4 +100,3 @@ int main() {
     game(BOARD);
     return 0;
 }
-

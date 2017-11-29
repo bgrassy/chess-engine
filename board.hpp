@@ -46,7 +46,7 @@ class board {
 
         bool legalMove(move m);
 
-        bool inCheck();
+        bool attacked(unsigned int square, color c);
 
         color getColor(unsigned int square);
 

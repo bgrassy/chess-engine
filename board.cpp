@@ -35,12 +35,14 @@ U64 board::getPieces(color c, piece p) {
     return pieceBB[(int)c] & pieceBB[(int)p + 2];
 }
 
+// Flips the board 180 degress.
 void board::invert() {
     for (int i = 0; i < 8; i++) {
         pieceBB[i] = flip180(pieceBB[i]);
     }
 }
 
+// Takes an unsigned 64-bit integer and "flips it"
 U64 board::flip180(U64 x) {
     U64 h1 = 0x5555555555555555;
     U64 h2 = 0x3333333333333333;
@@ -56,18 +58,21 @@ U64 board::flip180(U64 x) {
     return x;
 }
 
+// Takes two integers corresponding to squares, and returns whether they are in the same rank.
 bool board::sameRank(unsigned int square1, unsigned int square2) {
     return (square1 >> 3) == (square2 >> 3);
 }
 
+// Takes two integers corresponding to squares, and returns whether they are in the same file.
 bool board::sameFile(unsigned int square1, unsigned int square2) {
     return (square1 & 7) == (square2 & 7);
 }
 
+// Takes two integers corresponding to squares, and returns whether they are in the same diagonal.
 bool board::sameDiagonal(unsigned int square1, unsigned int square2) {
    return bishop_attacks(lookup[square1]) & bishop_attacks(lookup[square2]);
 }
-// Checks to see if there are any pieces in between the two squares. 
+// Checks to see if there are any pieces between two given squares. 
 bool board::inBetween(unsigned int square1, unsigned int square2) {
     if (square1 > square2) {
         int tmp = square1;
@@ -105,6 +110,7 @@ bool board::inBetween(unsigned int square1, unsigned int square2) {
     return false;
 } 
 
+// Takes a move, and tests if it is a "pseudo-legal" move.
 bool board::legalMove(class move m) {
     int start = m.getStart();
     int end = m.getEnd();
@@ -125,6 +131,11 @@ bool board::legalMove(class move m) {
     if (capture && (getColor(end) != opp)) {
         return false;
     }
+
+    if (!capture && (getPiece(end) != piece::None)) {
+        return false;
+    }
+
     if (prom && (!(startBB & Rank7) || (p != piece::Pawn))) {
         return false;
     }
@@ -166,9 +177,7 @@ bool board::legalMove(class move m) {
         if (capture) {
             return pawn_attacks(startBB, c) & endBB; 
         } else {
-            if (pawn_moves(startBB, c) & endBB){
-                return getPiece(end) == piece::None;
-            }   
+            return pawn_moves(startBB, c) & endBB;
         }
     } else if (p == piece::Knight) {
         return knight_attacks(startBB) & endBB;
@@ -184,56 +193,52 @@ bool board::legalMove(class move m) {
     return false;
 }
 
-bool board::inCheck() {
-    color c;
-    color opp;
-    if (whiteMove) {
-        c = color::White;
-        opp = color::Black;
-    } else {
-        c = color::Black;
-        opp = color::White;
-    }
-    int kingSquare = 0;
-    U64 kingLoc = getPieces(c, piece::King);
-    while (kingLoc > 1) {
-        kingSquare++;
-        kingLoc >>= 1;
-    }
-    if (getPieces(c, piece::King) & (pawn_attacks(getPieces(opp, piece::Pawn), c) | 
-            knight_attacks(getPieces(opp, piece::Knight)))) {
+// Takes a square and color and determines whether that player is attacking that square. 
+bool board::attacked(unsigned int square, color c) {
+    U64 sq = lookup[square]; 
+    if (sq & (pawn_attacks(getPieces(c, piece::Pawn), c) | 
+            knight_attacks(getPieces(c, piece::Knight)))) {
         return true;
-    } else if (getPieces(c, piece::King) & bishop_attacks(getPieces(opp, piece::Bishop))) {
-        U64 b = getPieces(opp, piece::Bishop); 
+    } 
+    if (sq & bishop_attacks(getPieces(c, piece::Bishop))) {
+        U64 b = getPieces(c, piece::Bishop); 
         int count = 0;
         while (b > 0) {
             if (b & 1) {
-                if (!inBetween(kingSquare, count)) {
-                    return true;
+                if (bishop_attacks(lookup[count]) & sq) {
+                    if (!inBetween(square, count)) {
+                        return true;
+                    }
                 }
             }
             b >>= 1;
             ++count;
         }
-    } else if (getPieces(c, piece::King) & rook_attacks(getPieces(opp, piece::Rook))) {
-        U64 b = getPieces(opp, piece::Rook); 
+    } 
+    if (sq & rook_attacks(getPieces(c, piece::Rook))) {
+        U64 b = getPieces(c, piece::Rook); 
         int count = 0;
         while (b > 0) {
             if (b & 1) {
-                if (!inBetween(kingSquare, count)) {
-                    return true;
+                if (rook_attacks(lookup[count]) & sq) {
+                    if (!inBetween(square, count)) {
+                        return true;
+                    }
                 }
             }
             b >>= 1;
             ++count;
         }
-    } else if (getPieces(c, piece::King) & queen_attacks(getPieces(opp, piece::Queen))) {
-        U64 b = getPieces(opp, piece::Queen); 
+    } 
+    if (sq & queen_attacks(getPieces(c, piece::Queen))) {
+        U64 b = getPieces(c, piece::Queen); 
         int count = 0;
         while (b > 0) {
             if (b & 1) {
-                if (!inBetween(kingSquare, count)) {
-                    return true;
+                if (queen_attacks(lookup[count]) & sq) {
+                    if (!inBetween(square, count)) {
+                        return true;
+                    }
                 }
             }
             b >>= 1;
@@ -274,6 +279,7 @@ bool board::makeMove(move m) {
     int type = m.getType();
     piece startP = getPiece(start);
     color startC = getColor(start);
+    color opp = (color) (((int) startC + 1) % 2);
     piece endP = getPiece(end);
     color endC = getColor(end);
     U64 tempPieceBB[8];
@@ -282,6 +288,13 @@ bool board::makeMove(move m) {
     std::copy(pieceBB, pieceBB + 8, tempPieceBB);
     std::copy(kingMoved, kingMoved + 2, tempKingMoved);
     std::copy(rookMoved, rookMoved + 4, tempRookMoved);
+    // Determines the square of the king
+    U64 kingLoc = getPieces(startC, piece::King);
+    int kingSquare = 0;
+    while (kingLoc > 1) {
+        kingSquare++;
+        kingLoc >>= 1;
+    } 
     if (!legalMove(m)) { return false;}
     if (flags == 0) { // normal move
         //std::cout << startBB << std::endl;
@@ -302,24 +315,30 @@ bool board::makeMove(move m) {
         U64 rookBB;
         pieceBB[7] ^= (startBB | endBB);  
         pieceBB[(int) startC] ^= (startBB | endBB);
-        if ((type & 1) == 0) {
-            if (startC == color::White) {
-                rookBB = lookup[5] ^ lookup[7];
+        if (!attacked(kingSquare, startC)) {
+            if ((type & 1) == 0) {
+                if (attacked(kingSquare + 1, startC) || attacked(kingSquare + 2, startC)) {
+                    if (startC == color::White) {
+                        rookBB = lookup[5] ^ lookup[7];
+                    } else {
+                        rookBB = lookup[61] ^ lookup[63];
+                    }
+                    pieceBB[5] ^= rookBB;
+                    pieceBB[(int) startC] ^= rookBB;
+                    rookMoved[2 * (int)startC] = true;
+                }
             } else {
-                rookBB = lookup[61] ^ lookup[63];
+                if (attacked(kingSquare - 1, startC) || attacked(kingSquare - 2, startC)) {
+                    if (startC == color::White) {
+                        rookBB = lookup[0] ^ lookup[3];
+                    } else {
+                        rookBB = lookup[54] ^ lookup[57];
+                    }
+                    pieceBB[5] ^= rookBB;
+                    pieceBB[(int) startC] ^= rookBB;
+                    rookMoved[1 + 2 * (int)startC] = true;
+                }
             }
-            pieceBB[5] ^= rookBB;
-            pieceBB[(int) startC] ^= rookBB;
-            rookMoved[2 * (int)startC] = true;
-        } else {
-            if (startC == color::White) {
-                rookBB = lookup[0] ^ lookup[3];
-            } else {
-                rookBB = lookup[54] ^ lookup[57];
-            }
-            pieceBB[5] ^= rookBB;
-            pieceBB[(int) startC] ^= rookBB;
-            rookMoved[1 + 2 * (int)startC] = true;
         }
     } else { // captures
         pieceBB[(int) endP + 2] ^= endBB;    
@@ -341,7 +360,14 @@ bool board::makeMove(move m) {
     if (startP == piece::King) {
         kingMoved[(int) startC] = true;
     }
-    if (inCheck()) {
+    int newKingSquare = 0;
+    kingLoc = getPieces(startC, piece::King);
+    while (kingLoc > 1) {
+        newKingSquare++;
+        kingLoc >>= 1;
+    } 
+    
+    if (attacked(kingSquare, opp) || attacked(newKingSquare, opp)) {
         std::copy(tempPieceBB, tempPieceBB + 8, pieceBB);
         std::copy(tempKingMoved, tempKingMoved + 2, kingMoved);
         std::copy(tempRookMoved, tempRookMoved + 4, rookMoved);

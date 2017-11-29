@@ -40,6 +40,7 @@ std::string move::toString() {
     int eFile = end / 8 + 1;
     //std::string s = std::to_string(start);
     //s += " " + std::to_string(end); s += " " + std::to_string(flags);
-    return sRank + std::to_string(sFile) + " " + eRank + std::to_string(eFile) + " " + std::to_string(flags)
-        + " " + std::to_string(start);
+    return sRank + std::to_string(sFile) + " " + eRank + std::to_string(eFile) + " " + std::to_string(start) + " " 
+        + std::to_string(end) + " " + std::to_string(flags);
+
 }
