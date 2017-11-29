@@ -1,3 +1,5 @@
+#include <iostream>
+#include <string>
 class move {
         unsigned int start;
         unsigned int end;
@@ -13,4 +15,5 @@ class move {
         bool getCapture();
         bool getProm();
         int getType();
+        std::string toString();
 };

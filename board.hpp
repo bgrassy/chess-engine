@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <stdint.h>
+#include <vector>
 #include "BB.hpp"
 #include "move.hpp"
 
@@ -10,15 +11,15 @@ using namespace types;
 typedef uint64_t U64;
 
 class board {
-        bool kingMoved[2];
-        bool rookMoved[4];
-        bool whiteMove;
+        bool kingMoved[2] = {false, false};
+        bool rookMoved[4] = {false, false, false, false};
+        bool whiteMove = true;
         U64 pieceBB[8];
         U64 lookup[64];
+        std::vector<class move> legalMoves;
     public:
         board();
-        
-        // Returns a bitboard representing all the pieces on the board.
+        // Returns a bitboard representing all the pieces on the board
         U64 getPieces();
 
         // Takes a color. Returns a bitboard of all the pieces of that color.
@@ -51,6 +52,9 @@ class board {
 
         piece getPiece(unsigned int square);
 
-        void move(class move m);
+        bool makeMove(move m);
+
+        std::vector<move> getLegalMoves();
+
 };
 #endif /* BOARD_H */

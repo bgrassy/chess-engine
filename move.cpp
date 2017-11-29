@@ -32,3 +32,14 @@ bool move::getProm() {
 int move::getType() {
     return type;
 }
+
+std::string move::toString() {
+    char sRank = start % 8 + 97;
+    char eRank = end % 8 + 97;
+    int sFile = start / 8 + 1;
+    int eFile = end / 8 + 1;
+    //std::string s = std::to_string(start);
+    //s += " " + std::to_string(end); s += " " + std::to_string(flags);
+    return sRank + std::to_string(sFile) + " " + eRank + std::to_string(eFile) + " " + std::to_string(flags)
+        + " " + std::to_string(start);
+}

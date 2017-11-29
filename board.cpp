@@ -1,7 +1,6 @@
 #include "board.hpp"
 
 board::board() {
-    whiteMove = true;
     pieceBB[0] = 0x000000000000FFFF; // white pieces
     pieceBB[1] = 0xFFFF000000000000; // black pieces
     pieceBB[2] = 0x00FF00000000FF00; // pawns
@@ -148,18 +147,18 @@ bool board::legalMove(class move m) {
                 return false;
             }
             if (end == 2) {
-                return rookMoved[2] && ((type & 1) == 1);            
+                return !rookMoved[2] && ((type & 1) == 1);            
             } else if (end == 6) {
-                return rookMoved[0] && ((type & 1) == 0);
+                return !rookMoved[0] && ((type & 1) == 0);
             }
         } else {
             if (p != piece::King || kingMoved[1]) {
                 return false;
             }
             if (end == 58) {
-                return rookMoved[2] && ((type & 1) == 1);            
+                return !rookMoved[2] && ((type & 1) == 1);            
             } else if (end == 60) {
-                return rookMoved[0] && ((type & 1) == 0);
+                return !rookMoved[0] && ((type & 1) == 0);
             }
         }
     }
@@ -195,6 +194,12 @@ bool board::inCheck() {
         c = color::Black;
         opp = color::White;
     }
+    int kingSquare = 0;
+    U64 kingLoc = getPieces(c, piece::King);
+    while (kingLoc > 1) {
+        kingSquare++;
+        kingLoc >>= 1;
+    }
     if (getPieces(c, piece::King) & (pawn_attacks(getPieces(opp, piece::Pawn), c) | 
             knight_attacks(getPieces(opp, piece::Knight)))) {
         return true;
@@ -203,39 +208,36 @@ bool board::inCheck() {
         int count = 0;
         while (b > 0) {
             if (b & 1) {
-                U64 bishop = lookup[count];
-                if (!inBetween(getPieces(c, piece::King), bishop)) {
+                if (!inBetween(kingSquare, count)) {
                     return true;
                 }
-                b >>= 1;
-                ++count;
             }
+            b >>= 1;
+            ++count;
         }
     } else if (getPieces(c, piece::King) & rook_attacks(getPieces(opp, piece::Rook))) {
         U64 b = getPieces(opp, piece::Rook); 
         int count = 0;
         while (b > 0) {
             if (b & 1) {
-                U64 rook = lookup[count];
-                if (!inBetween(getPieces(c, piece::King), rook)) {
+                if (!inBetween(kingSquare, count)) {
                     return true;
                 }
-                b >>= 1;
-                ++count;
             }
+            b >>= 1;
+            ++count;
         }
     } else if (getPieces(c, piece::King) & queen_attacks(getPieces(opp, piece::Queen))) {
         U64 b = getPieces(opp, piece::Queen); 
         int count = 0;
         while (b > 0) {
             if (b & 1) {
-                U64 queen = lookup[count];
-                if (!inBetween(getPieces(c, piece::King), queen)) {
+                if (!inBetween(kingSquare, count)) {
                     return true;
                 }
-                b >>= 1;
-                ++count;
             }
+            b >>= 1;
+            ++count;
         }
     }
     return false;
@@ -261,7 +263,7 @@ piece board::getPiece(unsigned int square) {
     return piece::None;
 }
 
-void board::move(class move m) {
+bool board::makeMove(move m) {
     int start = m.getStart();
     int end = m.getEnd();
     int flags = m.getFlags();
@@ -274,28 +276,13 @@ void board::move(class move m) {
     color startC = getColor(start);
     piece endP = getPiece(end);
     color endC = getColor(end);
-    bool tempWhiteMove = whiteMove;
-    int tempPieceBB[8];
-    int tempKingMoved[2];
-    int tempRookMoved[4];
+    U64 tempPieceBB[8];
+    bool tempKingMoved[2];
+    bool tempRookMoved[4];
     std::copy(pieceBB, pieceBB + 8, tempPieceBB);
     std::copy(kingMoved, kingMoved + 2, tempKingMoved);
     std::copy(rookMoved, rookMoved + 4, tempRookMoved);
-    if (!legalMove(m)) { return;}
-    if (startP == piece::Rook) {
-        if (start == 0) {
-            rookMoved[1] = true;
-        } else if (start == 7) {
-            rookMoved[0] = true;
-        } else if (start == 54) {
-            rookMoved[3] = true;
-        } else {
-            rookMoved[2] = true;
-        }
-    }
-    if (startP == piece::King) {
-        kingMoved[(int) startC] = true;
-    }
+    if (!legalMove(m)) { return false;}
     if (flags == 0) { // normal move
         //std::cout << startBB << std::endl;
         //std::cout << pieceBB[(int)startP + 2] << std::endl;
@@ -340,12 +327,191 @@ void board::move(class move m) {
         pieceBB[(int) startP + 2] ^= (startBB | endBB);
         pieceBB[(int) startC] ^= (startBB | endBB);
     }
-    whiteMove = !whiteMove;
+    if (startP == piece::Rook) {
+        if (start == 0) {
+            rookMoved[1] = true;
+        } else if (start == 7) {
+            rookMoved[0] = true;
+        } else if (start == 54) {
+            rookMoved[3] = true;
+        } else {
+            rookMoved[2] = true;
+        }
+    }
+    if (startP == piece::King) {
+        kingMoved[(int) startC] = true;
+    }
     if (inCheck()) {
         std::copy(tempPieceBB, tempPieceBB + 8, pieceBB);
         std::copy(tempKingMoved, tempKingMoved + 2, kingMoved);
         std::copy(tempRookMoved, tempRookMoved + 4, rookMoved);
-        whiteMove = tempWhiteMove;
+        return false;
     }
+    whiteMove = !whiteMove;
+    return true;
+}
+
+std::vector<move> board::getLegalMoves() {
+    U64 pieces; 
+    color c;
+    move m(0, 0, 0);
+    std::vector<move> moves;
+    if (whiteMove) {
+        pieces = pieceBB[0];
+        c = color::White;
+    } else {
+        pieces = pieceBB[1];
+        c = color::Black;
+    }
+    int count = 0;
+    while (pieces > 0) {
+        if ((pieces & 1) == 1) {
+            U64 pBB = lookup[count]; 
+            piece p = getPiece(count);
+            if (p == piece::Pawn) {
+                U64 pawnAttacks = pawn_attacks(pBB, c);
+                U64 pawnMoves = pawn_moves(pBB, c);
+                int attCount = 0;
+                int moveCount = 0;
+                while (pawnAttacks > 0) {
+                    if ((pawnAttacks & 1) == 1) {
+                        for (int i = 12; i <= 15; i++) {
+                            move m(count, attCount, i);
+                            if (legalMove(m)) {
+                                moves.push_back(m);
+                            }
+                        }
+                        move m(count, attCount, 8);
+                        if (legalMove(m)) {
+                            moves.push_back(m);
+                        }
+                    }
+                    attCount++;
+                    pawnAttacks >>= 1;
+                }
+                while (pawnMoves > 0) {
+                    if ((pawnMoves & 1) == 1) {
+                        for (int i = 8; i <= 11; i++) {
+                            move m(count, moveCount, i);
+                            if (legalMove(m)) {
+                                moves.push_back(m);
+                            }
+                        }
+                        move m(count, moveCount, 0);
+                        if (legalMove(m)) {
+                            moves.push_back(m);
+                        }
+                    }
+                    moveCount++;
+                    pawnMoves >>= 1;
+                }
+            } else if (p == piece::Knight) {
+                U64 knightMoves = knight_attacks(pBB);
+                int moveCount = 0;
+                while (knightMoves > 0) {
+                    if ((knightMoves & 1) == 1) {
+                        move m(count, moveCount, 0);
+                        if (legalMove(m)) {
+                            moves.push_back(m);
+                        }
+                        m = move(count, moveCount, 8);
+                        if (legalMove(m)) {
+                            moves.push_back(m);
+                        }
+                    }
+                    moveCount++;
+                    knightMoves >>= 1;
+                }
+            } else if (p == piece::Bishop) {
+                U64 bishopMoves = bishop_attacks(pBB);
+                int moveCount = 0;
+                while (bishopMoves > 0) {
+                    if ((bishopMoves & 1) == 1) {
+                        move m(count, moveCount, 0);
+                        if (legalMove(m)) {
+                            moves.push_back(m);
+                        }
+                        m = move(count, moveCount, 8);
+                        if (legalMove(m)) {
+                            moves.push_back(m);
+                        }
+                    }
+                    moveCount++;
+                    bishopMoves >>= 1;
+                }
+            } else if (p == piece::Rook) {
+                U64 rookMoves = rook_attacks(pBB);
+                int moveCount = 0;
+                while (rookMoves > 0) {
+                    if ((rookMoves & 1) == 1) {
+                        move m(count, moveCount, 0);
+                        if (legalMove(m)) {
+                            moves.push_back(m);
+                        }
+                        m = move(count, moveCount, 8);
+                        if (legalMove(m)) {
+                            moves.push_back(m);
+                        }
+                    }
+                    moveCount++;
+                    rookMoves >>= 1;
+                }
+            } else if (p == piece::Queen) {
+                U64 queenMoves = queen_attacks(pBB);
+                int moveCount = 0;
+                while (queenMoves > 0) {
+                    if ((queenMoves & 1) == 1) {
+                        move m(count, moveCount, 0);
+                        if (legalMove(m)) {
+                            moves.push_back(m);
+                        }
+                        m = move(count, moveCount, 8);
+                        if (legalMove(m)) {
+                            moves.push_back(m);
+                        }
+                    }
+                    moveCount++;
+                    queenMoves >>= 1;
+                }
+            } else if (p == piece::King) {
+                U64 kingMoves = king_attacks(pBB);
+                int moveCount = 0;
+                while (kingMoves > 0) {
+                    if ((kingMoves & 1) == 1) {
+                        move m(count, moveCount, 0);
+                        if (legalMove(m)) {
+                            moves.push_back(m);
+                        }
+                        m = move(count, moveCount, 8);
+                        if (legalMove(m)) {
+                            moves.push_back(m);
+                        }
+                    }
+                    moveCount++;
+                    kingMoves >>= 1;
+                }
+            }
+        }
+        
+        m = move(4, 6, 2);
+        if (legalMove(m)) {
+            moves.push_back(m);
+        }
+        m = move(4, 2, 3);
+        if (legalMove(m)) {
+            moves.push_back(m);
+        }
+        m = move(60, 62, 2);
+        if (legalMove(m)) {
+            moves.push_back(m);
+        }
+        m = move(60, 58, 3);
+        if (legalMove(m)) {
+            moves.push_back(m);
+        }
+        count++;
+        pieces >>= 1;
+    }
+    return moves;
 }
 
