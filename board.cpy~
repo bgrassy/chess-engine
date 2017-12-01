@@ -70,7 +70,7 @@ bool board::sameFile(unsigned int square1, unsigned int square2) {
 
 // Takes two integers corresponding to squares, and returns whether they are in the same diagonal.
 bool board::sameDiagonal(unsigned int square1, unsigned int square2) {
-    return bishop_attacks(lookup[square1]) & bishop_attacks(lookup[square2]);
+   return bishop_attacks(lookup[square1]) & bishop_attacks(lookup[square2]);
 }
 // Checks to see if there are any pieces between two given squares. 
 bool board::inBetween(unsigned int square1, unsigned int square2) {
@@ -184,7 +184,7 @@ bool board::legalMove(class move m) {
                     }
                 }
             }
-
+            
             if (capture && (getColor(end) != opp)) {
                 return false;
             }
@@ -214,7 +214,7 @@ bool board::legalMove(class move m) {
 bool board::attacked(unsigned int square, color c) {
     U64 sq = lookup[square]; 
     if (sq & (pawn_attacks(getPieces(c, piece::Pawn), c) | 
-                knight_attacks(getPieces(c, piece::Knight)))) {
+            knight_attacks(getPieces(c, piece::Knight)))) {
         return true;
     } 
     if (sq & bishop_attacks(getPieces(c, piece::Bishop))) {
@@ -420,7 +420,7 @@ bool board::makeMove(move m) {
         newKingSquare++;
         kingLoc >>= 1;
     } 
-
+    
     if (attacked(newKingSquare, opp)) {
         std::copy(tempPieceBB, tempPieceBB + 8, pieceBB);
         std::copy(tempKingMoved, tempKingMoved + 2, kingMoved);
@@ -429,7 +429,6 @@ bool board::makeMove(move m) {
     }
     whiteMove = !whiteMove;
     lastMove = move(start, end, flags);
-    std::cout << "score + " + std::to_string(boardScore()) << std::endl;
     return true;
 }
 
@@ -579,7 +578,7 @@ std::vector<move> board::getLegalMoves() {
                 }
             }
         }
-
+        
         m = move(4, 6, 2);
         if (legalMove(m)) {
             moves.push_back(m);
@@ -612,9 +611,8 @@ double board::boardScore() {
                 if ((pieces & 1) == 1) {
                     eval += pieceValues[p] * (1 - 2 * c);
                 }
-                pieces >>= 1;
+                pieces >>= 0;
             }
         }
     }
-    return eval;
 }

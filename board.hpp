@@ -59,5 +59,7 @@ class board {
 
         std::vector<move> getLegalMoves();
 
+        double boardScore();
+
 };
 #endif /* BOARD_H */
