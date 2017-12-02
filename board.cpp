@@ -12,6 +12,7 @@ board::board() {
     for (int i = 0; i < 64; i++) {
         lookup[i] = (U64)1 << i;
     }
+    moveList.push_back(move(0, 0, 0));
 }
 
 
@@ -122,6 +123,7 @@ bool board::legalMove(class move m) {
     color opp = (color) (((int)c+1)%2);
     U64 startBB = lookup[start];
     U64 endBB = lookup[end];
+    move lastMove = moveList.back();
     if (getPiece(start) == piece::None) {
         return false;
     } 
@@ -167,9 +169,9 @@ bool board::legalMove(class move m) {
                 return false;
             }
             if (end == 58) {
-                return !rookMoved[2] && ((type & 1) == 1);            
+                return !rookMoved[3] && ((type & 1) == 1);            
             } else if (end == 60) {
-                return !rookMoved[0] && ((type & 1) == 0);
+                return !rookMoved[1] && ((type & 1) == 0);
             }
         }
     }
@@ -321,12 +323,6 @@ bool board::makeMove(move m) {
     color opp = (color) (((int) startC + 1) % 2);
     piece endP = getPiece(end);
     color endC = getColor(end);
-    U64 tempPieceBB[8];
-    bool tempKingMoved[2];
-    bool tempRookMoved[4];
-    std::copy(pieceBB, pieceBB + 8, tempPieceBB);
-    std::copy(kingMoved, kingMoved + 2, tempKingMoved);
-    std::copy(rookMoved, rookMoved + 4, tempRookMoved);
     // Determines the square of the king
     U64 kingLoc = getPieces(startC, piece::King);
     int kingSquare = 0;
@@ -421,18 +417,70 @@ bool board::makeMove(move m) {
         kingLoc >>= 1;
     } 
 
+    whiteMove = !whiteMove;
+    moveList.push_back(move(start, end, flags));
+    captureList.push_back(endP);
     if (attacked(newKingSquare, opp)) {
-        std::copy(tempPieceBB, tempPieceBB + 8, pieceBB);
-        std::copy(tempKingMoved, tempKingMoved + 2, kingMoved);
-        std::copy(tempRookMoved, tempRookMoved + 4, rookMoved);
+        unmakeMove();
         return false;
     }
-    whiteMove = !whiteMove;
-    lastMove = move(start, end, flags);
     std::cout << "score + " + std::to_string(boardScore()) << std::endl;
     return true;
 }
 
+void board::unmakeMove() {
+    whiteMove = !whiteMove;
+    move lastMove = moveList.back();
+    piece lastCaptured = captureList.back();
+    moveList.pop_back();
+    captureList.pop_back();
+    int start = lastMove.getStart();
+    int end = lastMove.getEnd();
+    int flags = lastMove.getFlags();
+    U64 startBB = lookup[start];
+    U64 endBB = lookup[end];
+    color sCol = getColor(end);
+    piece sPiece = getPiece(end);
+    if (lastCaptured != piece::None) {
+        pieceBB[2 + (int) lastCaptured] ^= endBB;
+        pieceBB[((int) sCol + 1) % 2] ^= endBB; 
+    }
+    pieceBB[(int) sCol] ^= (startBB | endBB);
+    pieceBB[2 + (int) sPiece] ^= (startBB | endBB);
+    if (!lastMove.getProm() && !lastMove.getCapture()) {
+        if ((flags >> 1) != 0) { // castling
+            if (sCol == color::White) {
+                kingMoved[0] = false;
+                if (flags % 2 == 0) { // kingside
+                    pieceBB[5] ^= (lookup[5] | lookup[7]);
+                    rookMoved[0] = false;
+                } else {
+                    pieceBB[5] ^= (lookup[3] | lookup[0]);
+                    rookMoved[2] = false;
+                }
+            } else {
+                kingMoved[1] = false;
+                if (flags % 2 == 0) { // kingside
+                    pieceBB[5] ^= (lookup[61] | lookup[63]);
+                    rookMoved[1] = false;
+                } else {
+                    pieceBB[5] ^= (lookup[59] | lookup[56]);
+                    rookMoved[3] = false;
+                }
+            }
+        }
+    } else if (lastMove.getProm()) {
+        pieceBB[(int) sPiece + 2] ^= startBB; 
+        pieceBB[2] ^= startBB;
+    } else if (flags == 5) {
+        pieceBB[((int) sCol + 1) % 2] ^= endBB; 
+        if (sCol == color::White) {
+            pieceBB[((int) sCol + 1) % 2] ^= lookup[end - 8]; 
+        } else {
+            pieceBB[((int) sCol + 1) % 2] ^= lookup[end + 8]; 
+        }
+    }
+}
 // Returns a vector of the possible moves.
 std::vector<move> board::getLegalMoves() {
     U64 pieces; 

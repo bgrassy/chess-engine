@@ -18,6 +18,9 @@ void game(board BOARD) {
     while (mov != "q") {
         int start, end, flags;
         bool goodMove = false;
+        if (mov == "q") {
+            exit(0);
+        }
         while (!goodMove) {
             std::cout << "move: " << std::endl;
             std::getline(std::cin, mov);
@@ -25,16 +28,14 @@ void game(board BOARD) {
             os >> start;
             os >> end;
             os >> flags;
-            if (mov != "q") {
-                move M(start, end, flags);
-                std::cout << BOARD.legalMove(M) << std::endl;
-                goodMove = BOARD.makeMove(M);
-                if (!goodMove) {
-                    std::cout << "Illegal move!" << std::endl;
-                }
-                std::cout << std::bitset<64>(BOARD.getPieces(color::White)) << '\n';
-                std::cout << std::bitset<64>(BOARD.getPieces(color::Black)) << '\n';
+            move M(start, end, flags);
+            std::cout << BOARD.legalMove(M) << std::endl;
+            goodMove = BOARD.makeMove(M);
+            if (!goodMove) {
+                std::cout << "Illegal move!" << std::endl;
             }
+            std::cout << std::bitset<64>(BOARD.getPieces(color::White)) << '\n';
+            std::cout << std::bitset<64>(BOARD.getPieces(color::Black)) << '\n';
         }
         std::cout << "computer's move..." << std::endl;
         std::vector<move> legal = BOARD.getLegalMoves();
@@ -75,16 +76,17 @@ void gameTest(board BOARD) {
             os >> start;
             os >> end;
             os >> flags;
-            if (mov != "q") {
-                move M(start, end, flags);
-                std::cout << BOARD.legalMove(M) << std::endl;
-                goodMove = BOARD.makeMove(M);
-                if (!goodMove) {
-                    std::cout << "Illegal move!" << std::endl;
-                }
-                std::cout << std::bitset<64>(BOARD.getPieces(color::White)) << '\n';
-                std::cout << std::bitset<64>(BOARD.getPieces(color::Black)) << '\n';
+            if (mov == "u") {
+                BOARD.unmakeMove();
             }
+            move M(start, end, flags);
+            std::cout << BOARD.legalMove(M) << std::endl;
+            goodMove = BOARD.makeMove(M);
+            if (!goodMove) {
+                std::cout << "Illegal move!" << std::endl;
+            }
+            std::cout << std::bitset<64>(BOARD.getPieces(color::White)) << '\n';
+            std::cout << std::bitset<64>(BOARD.getPieces(color::Black)) << '\n';
         }
     }
 }
