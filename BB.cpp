@@ -1,6 +1,5 @@
 #include "BB.hpp"
 
-typedef uint64_t U64;
 // Takes a bitboard corresponding to pawn locations. Returns the set of squares that are attacked by them.
 U64 pawn_attacks(U64 pawns, color c) {
     if (c == color::White) {

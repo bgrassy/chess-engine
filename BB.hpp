@@ -2,11 +2,10 @@
 #define BB_H
 #include <vector>
 #include <set>
-#include <stdint.h>
 #include "types.hpp"
 
 using namespace types;
-typedef uint64_t U64;
+typedef unsigned long long U64;
 const U64 Rank1 = 0xFF;
 const U64 Rank2 = 0xFF00;
 const U64 Rank3 = 0xFF0000;

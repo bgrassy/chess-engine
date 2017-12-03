@@ -2,25 +2,32 @@
 #define BOARD_H
 
 #include <iostream>
-#include <stdint.h>
 #include <vector>
+#include <random>
+#include <cmath>
 #include "BB.hpp"
 #include "move.hpp"
 
 using namespace types;
-typedef uint64_t U64;
 
 class board {
         bool kingMoved[2] = {false, false};
         bool rookMoved[4] = {false, false, false, false};
+        // en passant possible on each file
+        bool enPassant[8] = {false, false, false, false, false, false, false, false};
         bool whiteMove = true;
         std::vector<move> moveList;
         std::vector<piece> captureList;
         U64 pieceBB[8];
         U64 lookup[64];
+        U64 hashVal;
+        U64 hashTable[64][12];
+        U64 specialHashTable[13];
         std::vector<class move> legalMoves;
     public:
         board();
+
+        U64 initHash();
         // Returns a bitboard representing all the pieces on the board
         U64 getPieces();
 

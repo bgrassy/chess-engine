@@ -10,7 +10,6 @@
 #include "board.hpp"
 
 using namespace types;
-typedef uint64_t U64;
 
 void game(board BOARD) {
     srand(time(NULL));

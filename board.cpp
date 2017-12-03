@@ -13,8 +13,43 @@ board::board() {
         lookup[i] = (U64)1 << i;
     }
     moveList.push_back(move(0, 0, 0));
+    initHash();
+    hashVal = 0;
+    for (int i = 0; i < 64; i++) {
+        int c = (int) getColor(i); 
+        int p = (int) getPiece(i); 
+        if (c != 2) { // if color is not none
+            hashVal ^= hashTable[i][6 * c + p];
+        }
+    }
+    for (int i = 0; i < 5; i++) {
+        hashVal ^= specialHashTable[i]; // whiteMove, castle;
+    }
+
+    std::cout << hashVal << std::endl;
 }
 
+U64 board::initHash() {
+    std::random_device rd;
+
+    std::mt19937_64 e2(rd());
+
+    std::uniform_int_distribution<long long int> dist(std::llround(std::pow(2,61)), std::llround(std::pow(2,62)));
+
+
+    for (int i = 0; i < 64; i++) {
+        for (int j = 0; j < 12; j++) {
+            hashTable[i][j] = dist(e2);
+        }
+    }
+
+    for (int i = 0; i < 13; i++) {
+        // 0: whiteMove or no
+        // 1-4: castle k/q, w/b
+        // 5-12: File of en passant
+        specialHashTable[i] = dist(e2);
+    }
+}
 
 // Returns a bitboard representing all the pieces on the board.
 U64 board::getPieces() {
@@ -310,19 +345,25 @@ bool board::inCheck() {
 
 // Takes a move, and executes the move on the board if it is legal.
 bool board::makeMove(move m) {
+    // Get all the information from the move.
     int start = m.getStart();
     int end = m.getEnd();
     int flags = m.getFlags();
-    U64 startBB = lookup[start];
-    U64 endBB = lookup[end];
     bool capture = m.getCapture();
     bool prom = m.getProm();
     int type = m.getType();
+    // Bitboards corresponding to start and end square.
+    U64 startBB = lookup[start];
+    U64 endBB = lookup[end];
+    // Get the start and end pieces.
     piece startP = getPiece(start);
     color startC = getColor(start);
-    color opp = (color) (((int) startC + 1) % 2);
     piece endP = getPiece(end);
     color endC = getColor(end);
+    color opp = (color) (((int) startC + 1) % 2);
+    // Initialize hash index values for start and end pieces.
+    int sHashIndex = 6 * (int) startC + (int) startP;
+    int eHashIndex = 6 * (int) endC + (int) endP;
     // Determines the square of the king
     U64 kingLoc = getPieces(startC, piece::King);
     int kingSquare = 0;
@@ -330,20 +371,45 @@ bool board::makeMove(move m) {
         kingSquare++;
         kingLoc >>= 1;
     } 
+
     if (!legalMove(m)) { return false;}
+
+    hashVal ^= hashTable[start][sHashIndex]; // removes the start piece from hashVal
+    hashVal ^= hashTable[end][sHashIndex]; // adds in the end piece to hashVal
+
+    for (int i = 0; i < 8; i++) {
+        if (enPassant[i]) {
+            hashVal ^= specialHashTable[5 + i];
+            enPassant[i] = false;
+        }
+    }
+
+    if (moveList.back().getType() == 1) {
+        int lastMoveEnd = moveList.back().getEnd();
+        int file = lastMoveEnd % 8;
+        if (file == 0) {
+            enPassant[1] = true;
+        } else if (file == 7) {
+            enPassant[6] = true;
+        } else {
+            enPassant[file - 1] = true;
+            enPassant[file + 1] = true;
+        }
+    }
+
     if (flags == 0 || flags == 1) { // normal move
-        //std::cout << startBB << std::endl;
-        //std::cout << pieceBB[(int)startP + 2] << std::endl;
         pieceBB[(int)startP + 2] ^= (startBB | endBB); 
         pieceBB[(int)startC] ^= (startBB | endBB);
-        //std::cout << pieceBB[(int)startP + 2] << std::endl;
     } else if (prom) {
-        int promPiece = 3 + (type & 3);
+        int promPiece = 1 + (type & 3);
+        hashVal ^= hashTable[start][sHashIndex]; // removes the pawn from hashVal
+        hashVal ^= hashTable[end][promPiece + (int) startC * 6]; // adds in the new piece
         if (capture) {
             pieceBB[(int) endC] ^= endBB;
             pieceBB[(int) endP + 2] ^= endBB;
+            hashVal ^= hashTable[end][eHashIndex]; // removes the old piece from hashVal
         }
-        pieceBB[promPiece] ^= endBB;
+        pieceBB[promPiece+ 2] ^= endBB;
         pieceBB[2] ^= startBB;
         pieceBB[(int)startC] ^= (startBB | endBB);
     } else if (((type >> 1) & 1) == 1) { // castling
@@ -351,23 +417,35 @@ bool board::makeMove(move m) {
         pieceBB[7] ^= (startBB | endBB);  
         pieceBB[(int) startC] ^= (startBB | endBB);
         if (!inCheck()) {
-            if ((type & 1) == 0) {
-                if (attacked(kingSquare + 1, opp) || attacked(kingSquare + 2, opp)) {
+            if ((type & 1) == 0) { // kingside
+                if (attacked(kingSquare + 1, opp) || attacked(kingSquare + 2, opp)) { // not castle through check
                     if (startC == color::White) {
                         rookBB = lookup[5] ^ lookup[7];
-                    } else {
+                        hashVal ^= hashTable[7][3];
+                        hashVal ^= hashTable[5][3];
+                        hashVal ^= specialHashTable[1];
+                    } else { 
                         rookBB = lookup[61] ^ lookup[63];
+                        hashVal ^= hashTable[63][9];
+                        hashVal ^= hashTable[61][9];
+                        hashVal ^= specialHashTable[3];
                     }
                     pieceBB[5] ^= rookBB;
                     pieceBB[(int) startC] ^= rookBB;
                     rookMoved[2 * (int)startC] = true;
                 }
-            } else {
-                if (attacked(kingSquare - 1, opp) || attacked(kingSquare - 2, opp)) {
+            } else { // queenside
+                if (attacked(kingSquare - 1, opp) || attacked(kingSquare - 2, opp)) { // not castle through check
                     if (startC == color::White) {
                         rookBB = lookup[0] ^ lookup[3];
+                        hashVal ^= hashTable[0][3];
+                        hashVal ^= hashTable[3][3];
+                        hashVal ^= specialHashTable[2];
                     } else {
                         rookBB = lookup[54] ^ lookup[57];
+                        hashVal ^= hashTable[54][9];
+                        hashVal ^= hashTable[57][9];
+                        hashVal ^= specialHashTable[4];
                     }
                     pieceBB[5] ^= rookBB;
                     pieceBB[(int) startC] ^= rookBB;
@@ -381,16 +459,20 @@ bool board::makeMove(move m) {
             pieceBB[(int) endC] ^= endBB;
             pieceBB[(int) startP + 2] ^= (startBB | endBB);
             pieceBB[(int) startC] ^= (startBB | endBB);
-        } else {
+            hashVal ^= hashTable[end][eHashIndex];
+        } else { // en passant
             endP = piece::Pawn;
+            eHashIndex = 6 * (int) endC + (int) endP;
             if (startC == color::White) {
                 endC = color::Black;
                 pieceBB[(int) endP + 2] ^= lookup[end - 8];    
                 pieceBB[(int) endC] ^= lookup[end - 8];
+                hashVal ^= hashTable[end - 8][eHashIndex];
             } else {
                 endC = color::White;
                 pieceBB[(int) endP + 2] ^= lookup[end + 8];    
                 pieceBB[(int) endC] ^= lookup[end + 8];
+                hashVal ^= hashTable[end + 8][eHashIndex];
             }
             pieceBB[(int) startP + 2] ^= (startBB | endBB);
             pieceBB[(int) startC] ^= (startBB | endBB);
@@ -418,6 +500,7 @@ bool board::makeMove(move m) {
     } 
 
     whiteMove = !whiteMove;
+    hashVal ^= specialHashTable[0];
     moveList.push_back(move(start, end, flags));
     captureList.push_back(endP);
     if (attacked(newKingSquare, opp)) {
