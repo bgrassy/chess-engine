@@ -9,7 +9,7 @@ board::board() {
     pieceBB[5] = 0x8100000000000081; // rooks
     pieceBB[6] = 0x0800000000000008; // queens
     pieceBB[7] = 0x1000000000000010; // kings
-    for (int i = 0; i < 64; i++) {
+    for (auto i = 0; i < 64; i++) {
         lookup[i] = (U64)1 << i;
     }
     moveList.push_back(move(0, 0, 0));
@@ -17,14 +17,14 @@ board::board() {
     enPassantList.push_back(enPassant);
     initHash();
     hashVal = 0;
-    for (int i = 0; i < 64; i++) {
+    for (auto i = 0; i < 64; i++) {
         int c = (int) getColor(i); 
         int p = (int) getPiece(i); 
         if (c != 2) { // if color is not none
             hashVal ^= hashTable[i][6 * c + p];
         }
     }
-    for (int i = 0; i < 5; i++) {
+    for (auto i = 0; i < 5; i++) {
         hashVal ^= specialHashTable[i]; // whiteMove, castle;
     }
     hashList.push_back(hashVal);
@@ -38,13 +38,13 @@ U64 board::initHash() {
     std::uniform_int_distribution<long long int> dist(std::llround(std::pow(2,61)), std::llround(std::pow(2,62)));
 
 
-    for (int i = 0; i < 64; i++) {
-        for (int j = 0; j < 12; j++) {
+    for (auto i = 0; i < 64; i++) {
+        for (auto j = 0; j < 12; j++) {
             hashTable[i][j] = dist(e2);
         }
     }
 
-    for (int i = 0; i < 13; i++) {
+    for (auto i = 0; i < 13; i++) {
         // 0: whiteMove or no
         // 1-4: castle k/q, w/b
         // 5-12: File of en passant
