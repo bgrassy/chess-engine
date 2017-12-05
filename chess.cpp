@@ -38,25 +38,17 @@ void game(board BOARD) {
             std::cout << std::bitset<64>(BOARD.getPieces(color::Black)) << '\n';
         }
         std::cout << "computer's move..." << std::endl;
-        std::vector<move> legal = BOARD.getLegalMoves();
-        std::random_shuffle(legal.begin(), legal.end());
-        while (legal.size() > 0) {
-            move m = legal.back();
-            bool valid = BOARD.makeMove(m); 
-            legal.pop_back();
-            std::cout << valid << std::endl;
-            if (valid) {
-                std::cout << m.toString() << std::endl;
-                break;
+        move best = getBestMove(BOARD, 3);
+        if (best.getStart() != 0 || best.getEnd() != 0) {
+            BOARD.makeMove(best);
+            std::cout << best.toString() << std::endl;
+        } else {
+            if (BOARD.inCheck()) {
+                std::cout << "checkmate!" << std::endl;
+            } else {
+                std::cout << "stalemate!" << std::endl;
             }
-            if (!valid && legal.size() == 0) {
-                if (BOARD.inCheck()) {
-                    std::cout << "checkmate!" << std::endl;
-                } else {
-                    std::cout << "stalemate!" << std::endl;
-                }
-                exit(0);
-            }
+            exit(0);
         }
         std::cout << std::bitset<64>(BOARD.getPieces(color::White)) << '\n';
         std::cout << std::bitset<64>(BOARD.getPieces(color::Black)) << '\n';
@@ -102,6 +94,6 @@ int main() {
     for (auto mov : moves) {
         std::cout << mov.toString() << std::endl;
     }
-    gameTest(BOARD);
+    game(BOARD);
     return 0;
 }
