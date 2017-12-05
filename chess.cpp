@@ -77,15 +77,17 @@ void gameTest(board BOARD) {
             os >> flags;
             if (mov == "u") {
                 BOARD.unmakeMove();
-            }
-            move M(start, end, flags);
-            std::cout << BOARD.legalMove(M) << std::endl;
-            goodMove = BOARD.makeMove(M);
-            if (!goodMove) {
-                std::cout << "Illegal move!" << std::endl;
+            } else {
+                move M(start, end, flags);
+                std::cout << BOARD.legalMove(M) << std::endl;
+                goodMove = BOARD.makeMove(M);
+                if (!goodMove) {
+                    std::cout << "Illegal move!" << std::endl;
+                }
             }
             std::cout << std::bitset<64>(BOARD.getPieces(color::White)) << '\n';
             std::cout << std::bitset<64>(BOARD.getPieces(color::Black)) << '\n';
+            std::cout << std::bitset<64>(BOARD.getPieces(color::White, piece::King)) << '\n';
         }
     }
 }
@@ -98,6 +100,6 @@ int main() {
     for (auto mov : moves) {
         std::cout << mov.toString() << std::endl;
     }
-    game(BOARD);
+    gameTest(BOARD);
     return 0;
 }

@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <vector>
+#include <array>
 #include <random>
 #include <cmath>
 #include "BB.hpp"
@@ -11,19 +12,21 @@
 using namespace types;
 
 class board {
-        bool kingMoved[2] = {false, false};
-        bool rookMoved[4] = {false, false, false, false};
+        int castle = 0b1111;
+        int enPassant = 0b00000000;
         // en passant possible on each file
-        bool enPassant[8] = {false, false, false, false, false, false, false, false};
         bool whiteMove = true;
         std::vector<move> moveList;
         std::vector<piece> captureList;
+        std::vector<int> castleList;
+        std::vector<int> enPassantList;
         U64 pieceBB[8];
         U64 lookup[64];
         U64 hashVal;
         U64 hashTable[64][12];
         U64 specialHashTable[13];
         std::vector<class move> legalMoves;
+        std::vector<U64> hashList;
     public:
         board();
 

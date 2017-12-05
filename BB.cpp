@@ -109,13 +109,13 @@ U64 queen_attacks(U64 queen) {
 
 // Takes a bitboard holding king locations. Returns the set of squares the kings can move to.
 U64 king_attacks(U64 king) {
-    U64 b = (king << 1) & ~HFile;
-    b |= (king >> 1) & ~AFile;
+    U64 b = (king << 1) & ~AFile;
+    b |= (king >> 1) & ~HFile;
     b |= king >> 8;
     b |= king << 8;
-    b |= (king >> 9) & ~AFile;
-    b |= (king >> 7) & ~HFile;
-    b |= (king << 9) & ~HFile;
-    b |= (king << 7) & ~AFile;
+    b |= (king >> 9) & ~HFile;
+    b |= (king >> 7) & ~AFile;
+    b |= (king << 9) & ~AFile;
+    b |= (king << 7) & ~HFile;
     return b;
 }
