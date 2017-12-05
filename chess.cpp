@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include "board.hpp"
+#include "search.hpp"
 
 using namespace types;
 
@@ -88,6 +89,7 @@ void gameTest(board BOARD) {
             std::cout << std::bitset<64>(BOARD.getPieces(color::White)) << '\n';
             std::cout << std::bitset<64>(BOARD.getPieces(color::Black)) << '\n';
             std::cout << std::bitset<64>(BOARD.getPieces(color::White, piece::King)) << '\n';
+            std::cout << getBestMove(BOARD, 3).toString() << std::endl;
         }
     }
 }

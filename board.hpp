@@ -32,6 +32,9 @@ class board {
 
         U64 initHash();
         // Returns a bitboard representing all the pieces on the board
+        
+        bool getMove();
+
         U64 getPieces();
 
         // Takes a color. Returns a bitboard of all the pieces of that color.

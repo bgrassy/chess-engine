@@ -28,7 +28,6 @@ board::board() {
         hashVal ^= specialHashTable[i]; // whiteMove, castle;
     }
     hashList.push_back(hashVal);
-    std::cout << hashVal << std::endl;
 }
 
 U64 board::initHash() {
@@ -53,6 +52,9 @@ U64 board::initHash() {
     }
 }
 
+bool board::getMove() {
+    return whiteMove;
+}
 // Returns a bitboard representing all the pieces on the board.
 U64 board::getPieces() {
     return pieceBB[0] | pieceBB[1];
@@ -534,11 +536,6 @@ bool board::makeMove(move m) {
     }
 
     hashVal = tmpHashVal;
-    std::cout << "hashVal " << std::endl;
-    for(auto h : hashList) {
-        std::cout << std::to_string(h) << std::endl;
-    }
-    std::cout << "score + " + std::to_string(boardScore()) << std::endl;
     return true;
 }
 
@@ -777,6 +774,9 @@ double board::boardScore() {
                 pieces >>= 1;
             }
         }
+    }
+    if (!whiteMove) {
+        eval *= -1;
     }
     return eval;
 }
