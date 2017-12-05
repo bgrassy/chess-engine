@@ -1,16 +1,23 @@
 #include "search.hpp"
 
-double alphabeta(board b, int depth, double alpha, double beta, bool maximize) {
+// Alpha beta search algorithm. Takes a board and a search depth, and finds the board score
+// using an implementation of alpha beta and minimax.
+std::pair<double, move> alphabeta(board b, int depth, double alpha, double beta, bool maximize) {
     double v;
+    move bestMove(0, 0, 0);
     if (depth == 0) {
-        return b.boardScore();
+        return std::make_pair(b.boardScore(), bestMove);
     }
     if (maximize) {
         v = -999;
         for (move m : b.getLegalMoves()) {
             if (b.makeMove(m)) {
-                v = std::max(v, alphabeta(b, depth - 1, alpha, beta, false));
-                alpha = std::max(alpha, v);
+                auto score = alphabeta(b, depth - 1, alpha, beta, false);
+                v = std::max(v, score.first);
+                if (v > alpha) {
+                    alpha = v;
+                    bestMove = m;
+                }
                 b.unmakeMove();
                 if (beta <= alpha) {
                     break;
@@ -21,8 +28,12 @@ double alphabeta(board b, int depth, double alpha, double beta, bool maximize) {
         v = 999;
         for (move m : b.getLegalMoves()) {
             if (b.makeMove(m)) {
-                v = std::min(v, alphabeta(b, depth - 1, alpha, beta, true));
-                alpha = std::min(alpha, v);
+                auto score = alphabeta(b, depth - 1, alpha, beta, true);
+                v = std::max(v, score.first);
+                if (v < beta) {
+                    bestMove = m;
+                    beta = v;
+                }
                 b.unmakeMove();
                 if (beta <= alpha) {
                     break;
@@ -30,21 +41,5 @@ double alphabeta(board b, int depth, double alpha, double beta, bool maximize) {
             }
         }
     }
-    return v;
-}
-
-move getBestMove(board b, int depth) {
-    double bestScore = -900.0;
-    move bestMove(0, 0, 0);
-    for (move m : b.getLegalMoves()) {
-        if (b.makeMove(m)) {
-            int score = alphabeta(b, depth, -999, 999, false);
-            b.unmakeMove();
-            if (score >= bestScore) {
-                bestScore = score;
-                bestMove = m;
-            }
-        }
-    }
-    return bestMove;
+    return std::make_pair(b.boardScore(), bestMove);
 }

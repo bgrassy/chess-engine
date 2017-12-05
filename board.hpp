@@ -1,5 +1,5 @@
-#ifndef BOARD_H
-#define BOARD_H
+#ifndef BOARD_HPP
+#define BOARD_HPP
 
 #include <iostream>
 #include <vector>
@@ -78,4 +78,4 @@ class board {
         double boardScore();
 
 };
-#endif /* BOARD_H */
+#endif /* BOARD_HPP */

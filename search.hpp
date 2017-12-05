@@ -1,6 +1,9 @@
+#ifndef SEARCH_HPP
+#define SEARCH_HPP
 #include <algorithm>
+#include <utility>
 #include "board.hpp"
 
-double alphabeta(board b, int depth, double alpha, double beta, bool maximizing);
+std::pair<double, move> alphabeta(board b, int depth, double alpha, double beta, bool maximizing);
 
-move getBestMove(board b, int depth);
+#endif /*SEARCH_HPP*/
