@@ -37,8 +37,9 @@ void game(board BOARD) {
             std::cout << std::bitset<64>(BOARD.getPieces(color::White)) << '\n';
             std::cout << std::bitset<64>(BOARD.getPieces(color::Black)) << '\n';
         }
+        std::cout << BOARD.boardScore() << std::endl;
         std::cout << "computer's move..." << std::endl;
-        move best = alphabeta(BOARD, 5, -900, 900, 1).second;
+        move best = alphabeta(BOARD, 4, -37267, 37267, 1).second;
         if (best.getStart() != 0 || best.getEnd() != 0) {
             BOARD.makeMove(best);
             std::cout << best.toString() << std::endl;
@@ -50,6 +51,7 @@ void game(board BOARD) {
             }
             exit(0);
         }
+        std::cout << BOARD.boardScore() << std::endl;
         std::cout << std::bitset<64>(BOARD.getPieces(color::White)) << '\n';
         std::cout << std::bitset<64>(BOARD.getPieces(color::Black)) << '\n';
     }

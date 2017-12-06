@@ -777,7 +777,7 @@ double board::boardScore() {
             while (pieces > 0) {
                 if ((pieces & 1) == 1) {
                     eval += pieceValues[p] * (1 - 2 * c);
-//                    eval += pieceTable[p][count] * (1 - 2 * c);
+                    eval += pieceTable[p][count];
                 }
                 pieces >>= 1;
                 count++;

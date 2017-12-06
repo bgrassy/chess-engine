@@ -11,71 +11,134 @@
 
 using namespace types;
 
+
 class board {
-        int castle = 0b1111;
-        int enPassant = 0b00000000;
-        // en passant possible on each file
-        bool whiteMove = true;
-        std::vector<move> moveList;
-        std::vector<piece> captureList;
-        std::vector<int> castleList;
-        std::vector<int> enPassantList;
-        U64 pieceBB[8];
-        U64 lookup[64];
-        U64 hashVal;
-        U64 hashTable[64][12];
-        U64 specialHashTable[13];
-        std::vector<class move> legalMoves;
-        std::vector<U64> hashList;
+    int castle = 0b1111;
+    int enPassant = 0b00000000;
+    // en passant possible on each file
+    bool whiteMove = true;
+    std::vector<move> moveList;
+    std::vector<piece> captureList;
+    std::vector<int> castleList;
+    std::vector<int> enPassantList;
+    U64 pieceBB[8];
+    U64 lookup[64];
+    U64 hashVal;
+    U64 hashTable[64][12];
+    U64 specialHashTable[13];
+    std::vector<class move> legalMoves;
+    std::vector<U64> hashList;
     public:
-        board();
+    short pieceTable[6][64] = {
+        {
+            0,  0,  0,  0,  0,  0,  0,  0,
+            50, 50, 50, 50, 50, 50, 50, 50,
+            10, 10, 20, 30, 30, 20, 10, 10,
+            5,  5, 10, 27, 27, 10,  5,  5,
+            0,  0,  0, 25, 25,  0,  0,  0,
+            5, -5,-10,  0,  0,-10, -5,  5,
+            5, 10, 10,-25,-25, 10, 10,  5,
+            0,  0,  0,  0,  0,  0,  0,  0
+        },
+        {
+            -50,-40,-30,-30,-30,-30,-40,-50,
+            -40,-20,  0,  0,  0,  0,-20,-40,
+            -30,  0, 10, 15, 15, 10,  0,-30,
+            -30,  5, 15, 20, 20, 15,  5,-30,
+            -30,  0, 15, 20, 20, 15,  0,-30,
+            -30,  5, 10, 15, 15, 10,  5,-30,
+            -40,-20,  0,  5,  5,  0,-20,-40,
+            -50,-40,-20,-30,-30,-20,-40,-50,
+        },
+        {
+            -20,-10,-10,-10,-10,-10,-10,-20,
+            -10,  0,  0,  0,  0,  0,  0,-10,
+            -10,  0,  5, 10, 10,  5,  0,-10,
+            -10,  5,  5, 10, 10,  5,  5,-10,
+            -10,  0, 10, 10, 10, 10,  0,-10,
+            -10, 10, 10, 10, 10, 10, 10,-10,
+            -10,  5,  0,  0,  0,  0,  5,-10,
+            -20,-10,-40,-10,-10,-40,-10,-20,
+        },
+        {
+            0,  0,  0,  0,  0,  0,  0,  0,
+            0,  0,  0,  0,  0,  0,  0,  0,
+            0,  0,  0,  0,  0,  0,  0,  0,
+            0,  0,  0,  0,  0,  0,  0,  0,
+            0,  0,  0,  0,  0,  0,  0,  0,
+            0,  0,  0,  0,  0,  0,  0,  0,
+            0,  0,  0,  0,  0,  0,  0,  0,
+            0,  0,  0,  0,  0,  0,  0,  0
+        },
+        {
+            0,  0,  0,  0,  0,  0,  0,  0,
+            0,  0,  0,  0,  0,  0,  0,  0,
+            0,  0,  0,  0,  0,  0,  0,  0,
+            0,  0,  0,  0,  0,  0,  0,  0,
+            0,  0,  0,  0,  0,  0,  0,  0,
+            0,  0,  0,  0,  0,  0,  0,  0,
+            0,  0,  0,  0,  0,  0,  0,  0,
+            0,  0,  0,  0,  0,  0,  0,  0
+        },
+        {
+            -30, -40, -40, -50, -50, -40, -40, -30,
+            -30, -40, -40, -50, -50, -40, -40, -30,
+            -30, -40, -40, -50, -50, -40, -40, -30,
+            -30, -40, -40, -50, -50, -40, -40, -30,
+            -20, -30, -30, -40, -40, -30, -30, -20,
+            -10, -20, -20, -20, -20, -20, -20, -10, 
+            20,  20,   0,   0,   0,   0,  20,  20,
+            20,  30,  10,   0,   0,  10,  30,  20
+        }
+    };
+    board();
 
-        U64 initHash();
-        // Returns a bitboard representing all the pieces on the board
-        
-        bool getMove();
+    U64 initHash();
+    // Returns a bitboard representing all the pieces on the board
 
-        U64 getPieces();
+    bool getMove();
 
-        // Takes a color. Returns a bitboard of all the pieces of that color.
-        U64 getPieces(color c);
+    U64 getPieces();
 
-        // Takes a piece type. Returns a bitboard of all the pieces of that type.
-        U64 getPieces(piece p);
+    // Takes a color. Returns a bitboard of all the pieces of that color.
+    U64 getPieces(color c);
 
-        // Takes a piece type and color. Returns a bitboard of all the pieces of that type and color.
-        U64 getPieces(color c, piece p);
-        
-        void invert();
+    // Takes a piece type. Returns a bitboard of all the pieces of that type.
+    U64 getPieces(piece p);
 
-        U64 flip180(U64 x);
+    // Takes a piece type and color. Returns a bitboard of all the pieces of that type and color.
+    U64 getPieces(color c, piece p);
 
-        bool sameRank(unsigned int square1, unsigned int square2);
+    void invert();
 
-        bool sameFile(unsigned int square1, unsigned int square2);
+    U64 flip180(U64 x);
 
-        bool sameDiagonal(unsigned int square1, unsigned int square2);
+    bool sameRank(unsigned int square1, unsigned int square2);
 
-        // Checks to see if there are any pieces in between the two squares. 
-        bool inBetween(unsigned int square1, unsigned int square2);
+    bool sameFile(unsigned int square1, unsigned int square2);
 
-        bool legalMove(move m);
+    bool sameDiagonal(unsigned int square1, unsigned int square2);
 
-        bool attacked(unsigned int square, color c);
+    // Checks to see if there are any pieces in between the two squares. 
+    bool inBetween(unsigned int square1, unsigned int square2);
 
-        color getColor(unsigned int square);
+    bool legalMove(move m);
 
-        piece getPiece(unsigned int square);
+    bool attacked(unsigned int square, color c);
 
-        bool inCheck();
+    color getColor(unsigned int square);
 
-        bool makeMove(move m);
+    piece getPiece(unsigned int square);
 
-        void unmakeMove();
+    bool inCheck();
 
-        std::vector<move> getLegalMoves();
+    bool makeMove(move m);
 
-        double boardScore();
+    void unmakeMove();
+
+    std::vector<move> getLegalMoves();
+
+    double boardScore();
 
 };
 #endif /* BOARD_HPP */
