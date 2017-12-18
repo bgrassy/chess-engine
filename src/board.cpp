@@ -147,6 +147,7 @@ bool board::inBetween(unsigned int square1, unsigned int square2) const {
 bool board::legalMove(class move m) const {
     int start = m.getStart();
     int end = m.getEnd();
+    int flags = m.getFlags();
     bool capture = m.getCapture();
     bool prom = m.getProm();
     int type = m.getType();
@@ -186,6 +187,10 @@ bool board::legalMove(class move m) const {
         return false;
     }
 
+    if (flags == 1 && p != piece::Pawn) {
+        return false;
+    }
+
     if (!prom && !capture && ((type >> 1) == 1)) { // castling
         if (c == color::White) {
             if (p != piece::King) {
@@ -208,7 +213,7 @@ bool board::legalMove(class move m) const {
                     return (castle & 8) && ((type & 1) == 1);            
                 }
                 return false;
-            } else if (end == 60) {
+            } else if (end == 62) {
                 return (castle & 4) && ((type & 1) == 0);
             }
         }
@@ -368,6 +373,7 @@ bool board::makeMove(move m) {
     piece endP = getPiece(end);
     color endC = getColor(end);
     color opp = (color) (((int) startC + 1) % 2);
+    bool checked = inCheck();
     // Initialize hash index values for start and end pieces.
     int sHashIndex = 6 * (int) startC + (int) startP;
     int eHashIndex = 6 * (int) endC + (int) endP;
@@ -433,7 +439,7 @@ bool board::makeMove(move m) {
     } 
     
     if (((type >> 1) & 1) == 1) { // castling
-        if (!inCheck()) {
+        if (!checked) {
             U64 rookBB;
             if ((type & 1) == 0) { // kingside
                 if (!attacked(kingSquare + 1, opp) && !attacked(kingSquare + 2, opp)) { // not castle through check
@@ -625,12 +631,10 @@ void board::unmakeMove() {
             if ((type & 1) == 0) { // kingside
                 if (startC == color::White) {
                     rookBB = lookup[5] ^ lookup[7];
-                    castle ^= 0b0001;
                     tmpHashVal ^= hashTable[5][3];
                     tmpHashVal ^= hashTable[7][3];
                 } else { 
                     rookBB = lookup[61] ^ lookup[63];
-                    castle ^= 0b0100;
                     tmpHashVal ^= hashTable[61][9];
                     tmpHashVal ^= hashTable[63][9];
                 }
@@ -639,12 +643,10 @@ void board::unmakeMove() {
             } else { // queenside
                 if (startC == color::White) {
                     rookBB = lookup[0] ^ lookup[3];
-                    castle ^= 0b0010;
                     tmpHashVal ^= hashTable[0][3];
                     tmpHashVal ^= hashTable[3][3];
                 } else {
                     rookBB = lookup[54] ^ lookup[57];
-                    castle ^= 0b1000;
                     tmpHashVal ^= hashTable[54][9];
                     tmpHashVal ^= hashTable[57][9];
                 }
@@ -657,27 +659,21 @@ void board::unmakeMove() {
     
     if (startP == piece::Rook) {
         if (start == 0) {
-            castle ^= 0b0010;
             tmpHashVal ^= specialHashTable[2];
         } else if (start == 7) {
-            castle ^= 0b0001;
             tmpHashVal ^= specialHashTable[1];
         } else if (start == 54) {
-            castle ^= 0b1000;
             tmpHashVal ^= specialHashTable[4];
         } else if (start == 63) {
-            castle ^= 0b0100;
             tmpHashVal ^= specialHashTable[3];
         }
     }
 
     if (startP == piece::King) {
         if (startC == color::White) {
-            castle ^= 0b0011;
             tmpHashVal ^= specialHashTable[1];
             tmpHashVal ^= specialHashTable[2];
         } else {
-            castle ^= 0b1100;
             tmpHashVal ^= specialHashTable[3];
             tmpHashVal ^= specialHashTable[4];
         }

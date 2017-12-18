@@ -20,8 +20,6 @@ class board {
     std::vector<piece> captureList;
     std::vector<int> castleList;
     std::vector<int> enPassantList;
-    std::vector<move> moveList;
-    U64 pieceBB[8];
     U64 lookup[64];
     U64 hashVal;
     U64 hashTable[64][12];
@@ -29,6 +27,8 @@ class board {
     std::vector<class move> legalMoves;
     std::vector<U64> hashList;
     public:
+    U64 pieceBB[8];
+    std::vector<move> moveList;
     short pieceTable[6][64] = {
 		// pawn
         {
