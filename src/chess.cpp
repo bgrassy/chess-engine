@@ -12,11 +12,16 @@
 
 using namespace types;
 
+int stringToSquare(std::string s) {
+    return 8 * (std::stoi(s.substr(1,1)) - 1) + ((int)s.at(0) - 97);
+}
+
 void game(board BOARD) {
     srand(time(NULL));
     std::string mov = "";
     while (mov != "q") {
-        int start, end, flags;
+        std::string start, end;
+        int flags;
         bool goodMove = false;
         if (mov == "q") {
             exit(0);
@@ -28,7 +33,7 @@ void game(board BOARD) {
             os >> start;
             os >> end;
             os >> flags;
-            move M(start, end, flags);
+            move M(stringToSquare(start), stringToSquare(end), flags);
             std::cout << BOARD.legalMove(M) << std::endl;
             goodMove = BOARD.makeMove(M);
             if (!goodMove) {
@@ -39,7 +44,7 @@ void game(board BOARD) {
         }
         std::cout << BOARD.boardScore() << std::endl;
         std::cout << "computer's move..." << std::endl;
-        move best = alphabeta(BOARD, 4, -37267, 37267, 1).second;
+        move best = alphabeta(BOARD, 4, -50000, 50000).second;
         if (best.getStart() != 0 || best.getEnd() != 0) {
             BOARD.makeMove(best);
             std::cout << best.toString() << std::endl;
@@ -61,7 +66,8 @@ void gameTest(board BOARD) {
     srand(time(NULL));
     std::string mov = "";
     while (mov != "q") {
-        int start, end, flags;
+        std::string start, end;
+        int flags;
         bool goodMove = false;
         while (!goodMove) {
             std::cout << "move: " << std::endl;
@@ -73,7 +79,7 @@ void gameTest(board BOARD) {
             if (mov == "u") {
                 BOARD.unmakeMove();
             } else {
-                move M(start, end, flags);
+                move M(stringToSquare(start), stringToSquare(end), flags);
                 std::cout << BOARD.legalMove(M) << std::endl;
                 goodMove = BOARD.makeMove(M);
                 if (!goodMove) {
