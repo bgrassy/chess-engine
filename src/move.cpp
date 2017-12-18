@@ -42,5 +42,8 @@ std::string move::toString() {
     //s += " " + std::to_string(end); s += " " + std::to_string(flags);
     return sRank + std::to_string(sFile) + " " + eRank + std::to_string(eFile) + " " + std::to_string(start) + " " 
         + std::to_string(end) + " " + std::to_string(flags);
+}
 
+int move::compareTo(move other) {
+    return 0;
 }

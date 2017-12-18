@@ -16,4 +16,5 @@ class move {
         bool getProm();
         int getType();
         std::string toString();
+        int compareTo(move other);
 };

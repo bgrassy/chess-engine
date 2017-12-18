@@ -52,38 +52,8 @@ U64 board::initHash() {
     }
 }
 
-bool board::getMove() {
-    return whiteMove;
-}
-// Returns a bitboard representing all the pieces on the board.
-U64 board::getPieces() {
-    return pieceBB[0] | pieceBB[1];
-}
-
-// Takes a color. Returns a bitboard of all the pieces of that color.
-U64 board::getPieces(color c) {
-    return pieceBB[(int)c];
-}
-
-// Takes a piece type. Returns a bitboard of all the pieces of that type.
-U64 board::getPieces(piece p) {
-    return pieceBB[(int)p + 2];
-}
-
-// Takes a piece type and color. Returns a bitboard of all the pieces of that type and color.
-U64 board::getPieces(color c, piece p) {
-    return pieceBB[(int)c] & pieceBB[(int)p + 2];
-}
-
-// Flips the board 180 degress.
-void board::invert() {
-    for (int i = 0; i < 8; i++) {
-        pieceBB[i] = flip180(pieceBB[i]);
-    }
-}
-
 // Takes an unsigned 64-bit integer and "flips it"
-U64 board::flip180(U64 x) {
+U64 board::flip180(U64 x) const {
     U64 h1 = 0x5555555555555555;
     U64 h2 = 0x3333333333333333;
     U64 h4 = 0x0F0F0F0F0F0F0F0F;
@@ -98,22 +68,45 @@ U64 board::flip180(U64 x) {
     return x;
 }
 
+bool board::getMove() const {
+    return whiteMove;
+}
+// Returns a bitboard representing all the pieces on the board.
+U64 board::getPieces() const {
+    return pieceBB[0] | pieceBB[1];
+}
+
+// Takes a color. Returns a bitboard of all the pieces of that color.
+U64 board::getPieces(color c) const {
+    return pieceBB[(int)c];
+}
+
+// Takes a piece type. Returns a bitboard of all the pieces of that type.
+U64 board::getPieces(piece p) const {
+    return pieceBB[(int)p + 2];
+}
+
+// Takes a piece type and color. Returns a bitboard of all the pieces of that type and color.
+U64 board::getPieces(color c, piece p) const {
+    return pieceBB[(int)c] & pieceBB[(int)p + 2];
+}
+
 // Takes two integers corresponding to squares, and returns whether they are in the same rank.
-bool board::sameRank(unsigned int square1, unsigned int square2) {
+bool board::sameRank(unsigned int square1, unsigned int square2) const{
     return (square1 >> 3) == (square2 >> 3);
 }
 
 // Takes two integers corresponding to squares, and returns whether they are in the same file.
-bool board::sameFile(unsigned int square1, unsigned int square2) {
+bool board::sameFile(unsigned int square1, unsigned int square2) const {
     return (square1 & 7) == (square2 & 7);
 }
 
 // Takes two integers corresponding to squares, and returns whether they are in the same diagonal.
-bool board::sameDiagonal(unsigned int square1, unsigned int square2) {
+bool board::sameDiagonal(unsigned int square1, unsigned int square2) const {
     return bishop_attacks(lookup[square1]) & bishop_attacks(lookup[square2]);
 }
 // Checks to see if there are any pieces between two given squares. 
-bool board::inBetween(unsigned int square1, unsigned int square2) {
+bool board::inBetween(unsigned int square1, unsigned int square2) const {
     if (square1 > square2) {
         int tmp = square1;
         square1 = square2;
@@ -151,7 +144,7 @@ bool board::inBetween(unsigned int square1, unsigned int square2) {
 } 
 
 // Takes a move, and tests if it is a "pseudo-legal" move.
-bool board::legalMove(class move m) {
+bool board::legalMove(class move m) const {
     int start = m.getStart();
     int end = m.getEnd();
     bool capture = m.getCapture();
@@ -261,7 +254,7 @@ bool board::legalMove(class move m) {
 }
 
 // Takes a square and color and determines whether that player is attacking that square. 
-bool board::attacked(unsigned int square, color c) {
+bool board::attacked(unsigned int square, color c) const {
     U64 sq = lookup[square]; 
     if (sq & (pawn_attacks(getPieces(c, piece::Pawn), c) | 
                 knight_attacks(getPieces(c, piece::Knight)))) {
@@ -316,7 +309,7 @@ bool board::attacked(unsigned int square, color c) {
 }
 
 // Takes a square, and returns the color of the piece on the square
-color board::getColor(unsigned int square) {
+color board::getColor(unsigned int square) const {
     U64 b = lookup[square];
     if (b & getPieces(color::White)) {
         return color::White;
@@ -327,7 +320,7 @@ color board::getColor(unsigned int square) {
 }
 
 // Takes a square, and returns the type of the piece on the square.
-piece board::getPiece(unsigned int square) {
+piece board::getPiece(unsigned int square) const {
     U64 b = lookup[square];
     for (int i = 0; i < 6; i++) {
         if (b & getPieces((piece) i)) {
@@ -338,7 +331,7 @@ piece board::getPiece(unsigned int square) {
 }
 
 // Returns whether the current player is in check or not.
-bool board::inCheck() {
+bool board::inCheck() const {
     color c, opp;    
     if (whiteMove) {
         c = color::White;
@@ -859,9 +852,9 @@ std::vector<move> board::getLegalMoves() {
     return moves;
 }
 
-double board::boardScore() {
+double board::boardScore() const {
     double eval = 0;
-    double pieceValues[] = {100, 300, 325, 500, 975, 32767};
+    double pieceValues[] = {100, 320, 330, 500, 900, 20000};
     for (int p = 0; p < 6; p++) {
         for (int c = 0; c < 2; c++) {
             U64 pieces = getPieces((color) c, (piece) p);
@@ -869,7 +862,12 @@ double board::boardScore() {
             while (pieces > 0) {
                 if ((pieces & 1) == 1) {
                     eval += pieceValues[p] * (1 - 2 * c);
-//                    eval += pieceTable[p][count] * (1 - 2 * c);
+                    if (c == 0) {
+                        eval += pieceTable[p][count] * (1 - 2 * c);
+                    } else {
+                        eval += pieceTable[p][(7 - count / 8) * 8 + count % 8] * (1 - 2 * c);
+
+                    }
                 }
                 pieces >>= 1;
                 count++;

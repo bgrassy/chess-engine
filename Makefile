@@ -1,2 +1,2 @@
-chess: *.cpp
-	g++ -g -std=c++11 *.cpp -o chess
+chess: src/*.cpp
+	g++ -g -std=c++11 src/*.cpp -o chess
