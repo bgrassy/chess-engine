@@ -6,6 +6,6 @@
 
 const int MAX_VALUE = 50000;
 const int MATE_VALUE = 25000;
-std::pair<double, Move> alphabeta(Board &b, int depth, double alpha, double beta);
-std::pair<double, Move> quiesce(Board &b, double alpha, double beta, Move bestMove);
+std::pair<int, Move> alphabeta(Board &b, int depth, int alpha, int beta);
+std::pair<int, Move> quiesce(Board &b, int alpha, int beta, Move bestMove);
 #endif /*SEARCH_HPP*/

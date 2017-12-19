@@ -366,9 +366,6 @@ bool Board::makeMove(Move m) {
     Color endC = getColor(end);
     Color opp = (Color) (((int) startC + 1) % 2);
     bool checked = inCheck();
-    // Initialize hash index values for start and end pieces.
-    int sHashIndex = 6 * (int) startC + (int) startP;
-    int eHashIndex = 6 * (int) endC + (int) endP;
     // Determines the square of the king
     U64 kingLoc = getPieces(startC, Piece::King);
     int kingSquare = 0;
@@ -379,27 +376,19 @@ bool Board::makeMove(Move m) {
 
     if (!legalMove(m)) { return false;}
 
-    U64 tmpHashVal = hashVal; 
-    tmpHashVal ^= specialHashTable[0];
+    U64 tmpHashVal = updatedHashVal(m); 
     pieceBB[(int)startP + 2] ^= startEndBB; 
     pieceBB[(int)startC] ^= startEndBB;
 
-    tmpHashVal ^= hashTable[start][sHashIndex];
-    tmpHashVal ^= hashTable[end][sHashIndex];
-    
     enPassant = 0;
     if (type == 1) {
         int file = start % 8;
         if (file == 0) {
             enPassant = 0b00000010;
-            tmpHashVal ^= specialHashTable[6];
         } else if (file == 7) {
             enPassant = 0b01000000;
-            tmpHashVal ^= specialHashTable[11];
         } else {
             enPassant ^= lookup[file - 1] ^ lookup[file + 1];
-            tmpHashVal ^= specialHashTable[file + 4];
-            tmpHashVal ^= specialHashTable[file + 6];
         }
     }
 
@@ -408,26 +397,19 @@ bool Board::makeMove(Move m) {
         if (startC == Color::White) {
             pieceBB[2] ^= lookup[end - 8];    
             pieceBB[1] ^= lookup[end - 8];
-            tmpHashVal ^= hashTable[end - 8][6];
-            tmpHashVal ^= hashTable[end][6];
         } else {
             pieceBB[2] ^= lookup[end + 8];    
             pieceBB[0] ^= lookup[end + 8];
-            tmpHashVal ^= hashTable[end + 8][0];
-            tmpHashVal ^= hashTable[end][0];
         }
     } else if (capture) {
         pieceBB[(int) endP + 2] ^= endBB;
         pieceBB[(int) endC] ^= endBB;
-        tmpHashVal ^= hashTable[end][eHashIndex];
     }
 
     if (prom) {
         int promPiece = 1 + (type & 3);
         pieceBB[promPiece + 2] ^= endBB;
         pieceBB[2] ^= endBB;
-        tmpHashVal ^= hashTable[end][sHashIndex];
-        tmpHashVal ^= hashTable[end][6 * (int) startC + promPiece];
     } 
     
     if (((type >> 1) & 1) == 1) { // castling
@@ -438,21 +420,15 @@ bool Board::makeMove(Move m) {
                     if (startC == Color::White) {
                         rookBB = lookup[5] ^ lookup[7];
                         castle ^= 0b0001;
-                        tmpHashVal ^= hashTable[5][3];
-                        tmpHashVal ^= hashTable[7][3];
                     } else { 
                         rookBB = lookup[61] ^ lookup[63];
                         castle ^= 0b0100;
-                        tmpHashVal ^= hashTable[61][9];
-                        tmpHashVal ^= hashTable[63][9];
                     }
                     pieceBB[5] ^= rookBB;
                     pieceBB[(int) startC] ^= rookBB;
                 } else {
                     pieceBB[(int)startP + 2] ^= startEndBB; 
                     pieceBB[(int)startC] ^= startEndBB;
-                    tmpHashVal ^= hashTable[start][sHashIndex];
-                    tmpHashVal ^= hashTable[end][sHashIndex];
                     return false;
                 }
             } else { // queenside
@@ -460,29 +436,21 @@ bool Board::makeMove(Move m) {
                     if (startC == Color::White) {
                         rookBB = lookup[0] ^ lookup[3];
                         castle ^= 0b0010;
-                        tmpHashVal ^= hashTable[0][3];
-                        tmpHashVal ^= hashTable[3][3];
                     } else {
                         rookBB = lookup[54] ^ lookup[57];
                         castle ^= 0b1000;
-                        tmpHashVal ^= hashTable[54][9];
-                        tmpHashVal ^= hashTable[57][9];
                     }
                     pieceBB[5] ^= rookBB;
                     pieceBB[(int) startC] ^= rookBB;
                 } else {
                     pieceBB[(int)startP + 2] ^= startEndBB; 
                     pieceBB[(int)startC] ^= startEndBB;
-                    tmpHashVal ^= hashTable[start][sHashIndex];
-                    tmpHashVal ^= hashTable[end][sHashIndex];
                     return false;
                 }
             }
         } else { // return to original state, return false
             pieceBB[(int)startP + 2] ^= startEndBB; 
             pieceBB[(int)startC] ^= startEndBB;
-            tmpHashVal ^= hashTable[start][sHashIndex];
-            tmpHashVal ^= hashTable[end][sHashIndex];
             return false;
         } 
     } 
@@ -490,28 +458,20 @@ bool Board::makeMove(Move m) {
     if (startP == Piece::Rook) {
         if (start == 0) {
             castle ^= 0b0010;
-            tmpHashVal ^= specialHashTable[2];
         } else if (start == 7) {
             castle ^= 0b0001;
-            tmpHashVal ^= specialHashTable[1];
         } else if (start == 54) {
             castle ^= 0b1000;
-            tmpHashVal ^= specialHashTable[4];
         } else if (start == 63) {
             castle ^= 0b0100;
-            tmpHashVal ^= specialHashTable[3];
         }
     }
 
     if (startP == Piece::King) {
         if (startC == Color::White) {
             castle ^= 0b0011;
-            tmpHashVal ^= specialHashTable[1];
-            tmpHashVal ^= specialHashTable[2];
         } else {
             castle ^= 0b1100;
-            tmpHashVal ^= specialHashTable[3];
-            tmpHashVal ^= specialHashTable[4];
         }
     }
     int newKingSquare = 0;
@@ -803,9 +763,9 @@ std::vector<Move> Board::getLegalMoves() const {
     return moves;
 }
 
-double Board::boardScore() const {
-    double eval = 0;
-    double pieceValues[] = {100, 320, 330, 500, 900, 20000};
+int Board::boardScore() const {
+    int eval = 0;
+    int pieceValues[] = {100, 320, 330, 500, 900, 20000};
     for (int p = 0; p < 6; p++) {
         for (int c = 0; c < 2; c++) {
             U64 pieces = getPieces((Color) c, (Piece) p);
@@ -831,51 +791,160 @@ double Board::boardScore() const {
     return eval;
 }
 
-bool compareTo(Board& board, Move a, Move b) { // return a < b
-    bool aCapture, bCapture;
-    U64 hash = board.getHashVal();
-    if (board.makeMove(a)) {
-        aCapture = board.getLastCapture() != Piece::None;
-        board.unmakeMove();
-    } else {
-        return true;
-    }
-    if (board.makeMove(b)) {
-        bCapture = board.getLastCapture() != Piece::None;
-        board.unmakeMove();
-    } else {
-        return false;
-    }
-    HashEntry boardEntry = board.transTable[hash % 10000];
-    if (boardEntry.type != 1 && boardEntry.zobrist == hash) { // checks if there is a Hash Node
-        if (boardEntry.bestMove.equals(a)) {
+bool Board::compareTo(const Move &a, const Move &b) { // return a < b
+    //bool aCapture, bCapture;
+    bool aCapture = getPiece(a.getEnd()) != Piece::None;
+    bool bCapture = getPiece(b.getEnd()) != Piece::None;
+    U64 hash = getHashVal();
+    HashEntry boardEntry1 = transTableDepth[hash % 10000];
+    HashEntry boardEntry2 = transTableAlways[hash % 10000];
+    if (boardEntry1.type != -1 && boardEntry1.zobrist == hash) { // checks if there is a Hash Node
+        if (boardEntry1.bestMove.equals(a)) {
+            return true;
+        }
+        if (boardEntry1.bestMove.equals(b)) {
             return false;
         }
-        if (boardEntry.bestMove.equals(b)) {
+    }
+    if (boardEntry2.type != -1 && boardEntry2.zobrist == hash) { // checks if there is a Hash Node
+        if (boardEntry2.bestMove.equals(a)) {
             return true;
+        }
+        if (boardEntry2.bestMove.equals(b)) {
+            return false;
         }
     }
     if (aCapture) {
-        return bCapture;
+        return !bCapture;
     }
     if (bCapture) {
-        return true;
+        return false;
     }
     return a.getStart() < b.getStart();
 }
+
    
 // Inserts the given HashEntry into the transportation table at the given index.
 void Board::insertTransTable(int index, HashEntry h) {
-    if (transTable[index].type != -1) {
-        HashEntry other = transTable[index];
-        if (other.zobrist != h.zobrist) {
-            transTable[index] = h; 
+    transTableAlways[index] = h;
+    if (transTableDepth[index].ancient == true) {
+        transTableDepth[index] = h;
+    } else {
+        if (transTableDepth[index].type != -1) {
+            HashEntry other = transTableDepth[index];
+            if (other.zobrist != h.zobrist) {
+                transTableDepth[index] = h; 
+            } else {
+                if (other.depth < h.depth) {
+                    transTableDepth[index] = h; 
+                }
+            }
         } else {
-            if (other.depth < h.depth) {
-                transTable[index] = h; 
+            transTableDepth[index] = h;
+        }
+    }
+}
+
+U64 Board::updatedHashVal(Move m) const {
+    // Get all the information from the move.
+    int start = m.getStart();
+    int end = m.getEnd();
+    int flags = m.getFlags();
+    bool capture = m.getCapture();
+    bool prom = m.getProm();
+    int type = m.getType();
+    // Get the start and end pieces.
+    Piece startP = getPiece(start);
+    Color startC = getColor(start);
+    Piece endP = getPiece(end);
+    Color endC = getColor(end);
+    // Initialize hash index values for start and end pieces.
+    int sHashIndex = 6 * (int) startC + (int) startP;
+    int eHashIndex = 6 * (int) endC + (int) endP;
+
+    U64 tmpHashVal = hashVal; 
+    tmpHashVal ^= specialHashTable[0];
+
+    tmpHashVal ^= hashTable[start][sHashIndex];
+    tmpHashVal ^= hashTable[end][sHashIndex];
+
+    if (type == 1) {
+        int file = start % 8;
+        if (file == 0) {
+            tmpHashVal ^= specialHashTable[6];
+        } else if (file == 7) {
+            tmpHashVal ^= specialHashTable[11];
+        } else {
+            tmpHashVal ^= specialHashTable[file + 4];
+            tmpHashVal ^= specialHashTable[file + 6];
+        }
+    }
+
+    if (flags == 5) { // en passant
+        endP = Piece::Pawn;
+        if (startC == Color::White) {
+            tmpHashVal ^= hashTable[end - 8][6];
+            tmpHashVal ^= hashTable[end][6];
+        } else {
+            tmpHashVal ^= hashTable[end + 8][0];
+            tmpHashVal ^= hashTable[end][0];
+        }
+    } else if (capture) {
+        tmpHashVal ^= hashTable[end][eHashIndex];
+    }
+
+    if (prom) {
+        int promPiece = 1 + (type & 3);
+        tmpHashVal ^= hashTable[end][sHashIndex];
+        tmpHashVal ^= hashTable[end][6 * (int) startC + promPiece];
+    } 
+
+    if (((type >> 1) & 1) == 1) { // castling
+        if ((type & 1) == 0) { // kingside
+            if (startC == Color::White) {
+                tmpHashVal ^= hashTable[5][3];
+                tmpHashVal ^= hashTable[7][3];
+            } else { 
+                tmpHashVal ^= hashTable[61][9];
+                tmpHashVal ^= hashTable[63][9];
+            }
+        } else { // queenside
+            if (startC == Color::White) {
+                tmpHashVal ^= hashTable[0][3];
+                tmpHashVal ^= hashTable[3][3];
+            } else {
+                tmpHashVal ^= hashTable[54][9];
+                tmpHashVal ^= hashTable[57][9];
             }
         }
-    } else {
-        transTable[index] = h;
+    }
+    if (startP == Piece::Rook) {
+        if (start == 0) {
+            tmpHashVal ^= specialHashTable[2];
+        } else if (start == 7) {
+            tmpHashVal ^= specialHashTable[1];
+        } else if (start == 54) {
+            tmpHashVal ^= specialHashTable[4];
+        } else if (start == 63) {
+            tmpHashVal ^= specialHashTable[3];
+        }
+    }
+
+    if (startP == Piece::King) {
+        if (startC == Color::White) {
+            tmpHashVal ^= specialHashTable[1];
+            tmpHashVal ^= specialHashTable[2];
+        } else {
+            tmpHashVal ^= specialHashTable[3];
+            tmpHashVal ^= specialHashTable[4];
+        }
+    }
+    return tmpHashVal;
+}
+
+void Board::flushTransTable() {
+    for (int i = 0; i < 10000; i++) {
+        transTableAlways[i].ancient = true;
+        transTableDepth[i].ancient = true;
     }
 }

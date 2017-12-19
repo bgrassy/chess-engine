@@ -6,10 +6,12 @@
 #include <array>
 #include <random>
 #include <cmath>
+#include <algorithm>
 #include "BB.hpp"
 #include "move.hpp"
 
 using namespace Types;
+
 
 class HashEntry {
     public:
@@ -18,12 +20,14 @@ class HashEntry {
         int score;
         int depth;
         short type; // 0 is exact, 1 is fail-high, 2 is fail-low
-        HashEntry(U64 zobrist, Move bestMove, int score, int depth, short type) {
+        bool ancient;
+        HashEntry(U64 zobrist, Move bestMove, int score, int depth, short type, bool ancient) {
             this->zobrist = zobrist;
             this->bestMove = bestMove;
             this->score = score;
             this->depth = depth;
             this->type = type;
+            this->ancient = ancient;
         }
         HashEntry() {
             this->zobrist = 0;
@@ -31,9 +35,9 @@ class HashEntry {
             this->score = 0;
             this->depth = 0;
             this->type = -1;
+            this->ancient = true;
         }
 };
-
 class Board {
     int castle = 0b1111;
     int enPassant = 0b00000000;
@@ -51,7 +55,8 @@ class Board {
     std::vector<U64> hashList;
     public:
     // our transposition table
-    HashEntry transTable[10000];
+    HashEntry transTableDepth[10000];
+    HashEntry transTableAlways[10000];
     std::vector<Move> moveList;
     short pieceTable[6][64] = {
 		// pawn
@@ -169,11 +174,14 @@ class Board {
 
     std::vector<Move> getLegalMoves() const;
 
-    double boardScore() const;
+    int boardScore() const;
 
-    static bool compareTo(Board& board, Move a, Move b);
+    bool compareTo(const Move &a, const Move &b);
 
     void insertTransTable(int index, HashEntry h);
 
+    U64 updatedHashVal(Move m) const; 
+
+    void flushTransTable();
 };
 #endif /* BOARD_HPP */
