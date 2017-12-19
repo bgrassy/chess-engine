@@ -1,6 +1,6 @@
 #include <iostream>
 #include <string>
-class move {
+class Move {
         unsigned int start;
         unsigned int end;
         unsigned int flags;
@@ -8,13 +8,14 @@ class move {
         bool promotion;
         int type;
     public:
-        move(unsigned int start, unsigned int end, unsigned int flags);
-        int getStart();
-        int getEnd();
-        int getFlags();
-        bool getCapture();
-        bool getProm();
-        int getType();
-        std::string toString();
-        int compareTo(move other);
+        Move();
+        Move(unsigned int start, unsigned int end, unsigned int flags);
+        int getStart() const;
+        int getEnd() const;
+        int getFlags() const;
+        bool getCapture() const;
+        bool getProm() const;
+        int getType() const;
+        std::string toString() const;
+        bool equals(const Move& a) const;
 };

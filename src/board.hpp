@@ -9,26 +9,50 @@
 #include "BB.hpp"
 #include "move.hpp"
 
-using namespace types;
+using namespace Types;
 
+class HashEntry {
+    public:
+        U64 zobrist;
+        Move bestMove;
+        int score;
+        int depth;
+        short type; // 0 is exact, 1 is fail-high, 2 is fail-low
+        HashEntry(U64 zobrist, Move bestMove, int score, int depth, short type) {
+            this->zobrist = zobrist;
+            this->bestMove = bestMove;
+            this->score = score;
+            this->depth = depth;
+            this->type = type;
+        }
+        HashEntry() {
+            this->zobrist = 0;
+            this->bestMove = Move();
+            this->score = 0;
+            this->depth = 0;
+            this->type = -1;
+        }
+};
 
-class board {
+class Board {
     int castle = 0b1111;
     int enPassant = 0b00000000;
     // en passant possible on each file
     bool whiteMove = true;
-    std::vector<piece> captureList;
+    std::vector<Piece> captureList;
     std::vector<int> castleList;
     std::vector<int> enPassantList;
     U64 lookup[64];
+    U64 pieceBB[8];
     U64 hashVal;
     U64 hashTable[64][12];
     U64 specialHashTable[13];
-    std::vector<class move> legalMoves;
+    std::vector<class Move> legalMoves;
     std::vector<U64> hashList;
     public:
-    U64 pieceBB[8];
-    std::vector<move> moveList;
+    // our transposition table
+    HashEntry transTable[10000];
+    std::vector<Move> moveList;
     short pieceTable[6][64] = {
 		// pawn
         {
@@ -96,24 +120,27 @@ class board {
             20, 30, 10,  0,  0, 10, 30, 20
         }
     };
-    board();
+    Board();
 
-    U64 initHash();
-    // Returns a bitboard representing all the pieces on the board
+    void initHash();
 
-    U64 flip180(U64 x) const;
+    U64 getHashVal() const;
+
     bool getMove() const;
 
+    // Returns a bitboard representing all the pieces on the board
     U64 getPieces() const;
 
     // Takes a color. Returns a bitboard of all the pieces of that color.
-    U64 getPieces(color c) const;
+    U64 getPieces(Color c) const;
 
     // Takes a piece type. Returns a bitboard of all the pieces of that type.
-    U64 getPieces(piece p) const;
+    U64 getPieces(Piece p) const;
 
     // Takes a piece type and color. Returns a bitboard of all the pieces of that type and color.
-    U64 getPieces(color c, piece p) const;
+    U64 getPieces(Color c, Piece p) const;
+
+    Piece getLastCapture() const;
 
     bool sameRank(unsigned int square1, unsigned int square2) const;
 
@@ -124,23 +151,29 @@ class board {
     // Checks to see if there are any pieces in between the two squares. 
     bool inBetween(unsigned int square1, unsigned int square2) const;
 
-    bool legalMove(move m) const;
+    bool legalMove(Move m) const;
 
-    bool attacked(unsigned int square, color c) const;
+    bool attacked(unsigned int square, Color c) const;
 
-    color getColor(unsigned int square) const;
+    Color getColor(unsigned int square) const;
 
-    piece getPiece(unsigned int square) const;
+    Piece getPiece(unsigned int square) const;
 
     bool inCheck() const;
 
-    bool makeMove(move m);
+    bool makeMove(Move m);
 
     void unmakeMove();
 
-    std::vector<move> getLegalMoves();
+    bool inCheckmate();
+
+    std::vector<Move> getLegalMoves() const;
 
     double boardScore() const;
+
+    static bool compareTo(Board& board, Move a, Move b);
+
+    void insertTransTable(int index, HashEntry h);
 
 };
 #endif /* BOARD_HPP */

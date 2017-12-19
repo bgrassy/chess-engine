@@ -10,7 +10,7 @@
 #include "board.hpp"
 #include "search.hpp"
 
-using namespace types;
+using namespace Types;
 
 int stringToSquare(std::string s) {
     return 8 * (std::stoi(s.substr(1,1)) - 1) + ((int)s.at(0) - 97);
@@ -25,13 +25,17 @@ bool legalSquare(std::string s) {
     return false;
 }
 
-void game(board BOARD) {
+void game(Board BOARD) {
     srand(time(NULL));
     std::string mov = "";
     while (mov != "q") {
         std::string start, end;
         int flags;
         bool goodMove = false;
+        if (BOARD.inCheckmate()) {
+            std::cout << "Checkmate!" << std::endl;
+            exit(0);
+        }
         if (mov == "q") {
             exit(0);
         }
@@ -43,8 +47,8 @@ void game(board BOARD) {
                 if (os >> end) {
                     if (os >> flags) {
                         if (legalSquare(start) && legalSquare(end)) {
-                            move M(stringToSquare(start), stringToSquare(end), flags);
-                            goodMove = BOARD.makeMove(M);
+                            Move m(stringToSquare(start), stringToSquare(end), flags);
+                            goodMove = BOARD.makeMove(m);
                         }
                     }
                 }
@@ -54,7 +58,7 @@ void game(board BOARD) {
             }
         }
         std::cout << "computer's move..." << std::endl;
-        move best = alphabeta(BOARD, 4, -50000, 50000).second;
+        Move best = alphabeta(BOARD, 4, -MAX_VALUE, MAX_VALUE).second;
         if (best.getStart() != 0 || best.getEnd() != 0) {
             BOARD.makeMove(best);
             std::cout << best.toString() << std::endl;
@@ -69,7 +73,7 @@ void game(board BOARD) {
     }
 }
 
-void gameTest(board BOARD) {
+void gameTest(Board BOARD) {
     srand(time(NULL));
     std::string mov = "";
     while (mov != "q") {
@@ -86,7 +90,7 @@ void gameTest(board BOARD) {
             if (mov == "u") {
                 BOARD.unmakeMove();
             } else {
-                move M(stringToSquare(start), stringToSquare(end), flags);
+                Move M(stringToSquare(start), stringToSquare(end), flags);
                 std::cout << BOARD.legalMove(M) << std::endl;
                 goodMove = BOARD.makeMove(M);
                 if (!goodMove) {
@@ -98,7 +102,7 @@ void gameTest(board BOARD) {
 }
 
 int main() {
-    board BOARD;
+    Board BOARD;
     game(BOARD);
     return 0;
 }

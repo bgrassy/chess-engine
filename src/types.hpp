@@ -1,6 +1,6 @@
 #pragma once
-namespace types {   
-    enum class piece {
+namespace Types {   
+    enum class Piece {
         Pawn,
         Knight,
         Bishop,
@@ -9,7 +9,7 @@ namespace types {
         King,
         None
     };
-    enum class color {
+    enum class Color {
         White,
         Black,
         None

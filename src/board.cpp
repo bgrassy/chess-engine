@@ -1,6 +1,6 @@
 #include "board.hpp"
 
-board::board() {
+Board::Board() {
     pieceBB[0] = 0x000000000000FFFF; // white pieces
     pieceBB[1] = 0xFFFF000000000000; // black pieces
     pieceBB[2] = 0x00FF00000000FF00; // pawns
@@ -12,7 +12,7 @@ board::board() {
     for (int i = 0; i < 64; i++) {
         lookup[i] = (U64)1 << i;
     }
-    moveList.push_back(move(0, 0, 0));
+    moveList.push_back(Move(0, 0, 0));
     castleList.push_back(castle);
     enPassantList.push_back(enPassant);
     initHash();
@@ -30,7 +30,7 @@ board::board() {
     hashList.push_back(hashVal);
 }
 
-U64 board::initHash() {
+void Board::initHash() {
     std::random_device rd;
 
     std::mt19937_64 e2(rd());
@@ -52,61 +52,53 @@ U64 board::initHash() {
     }
 }
 
-// Takes an unsigned 64-bit integer and "flips it"
-U64 board::flip180(U64 x) const {
-    U64 h1 = 0x5555555555555555;
-    U64 h2 = 0x3333333333333333;
-    U64 h4 = 0x0F0F0F0F0F0F0F0F;
-    U64 v1 = 0x00FF00FF00FF00FF;
-    U64 v2 = 0x0000FFFF0000FFFF;
-    x = ((x >>  1) & h1) | ((x & h1) <<  1);
-    x = ((x >>  2) & h2) | ((x & h2) <<  2);
-    x = ((x >>  4) & h4) | ((x & h4) <<  4);
-    x = ((x >>  8) & v1) | ((x & v1) <<  8);
-    x = ((x >> 16) & v2) | ((x & v2) << 16);
-    x = (x >> 32) | (x << 32);
-    return x;
-}
+U64 Board::getHashVal() const {
+    return hashVal;
+} 
 
-bool board::getMove() const {
+bool Board::getMove() const {
     return whiteMove;
 }
 // Returns a bitboard representing all the pieces on the board.
-U64 board::getPieces() const {
+U64 Board::getPieces() const {
     return pieceBB[0] | pieceBB[1];
 }
 
 // Takes a color. Returns a bitboard of all the pieces of that color.
-U64 board::getPieces(color c) const {
+U64 Board::getPieces(Color c) const {
     return pieceBB[(int)c];
 }
 
 // Takes a piece type. Returns a bitboard of all the pieces of that type.
-U64 board::getPieces(piece p) const {
+U64 Board::getPieces(Piece p) const {
     return pieceBB[(int)p + 2];
 }
 
 // Takes a piece type and color. Returns a bitboard of all the pieces of that type and color.
-U64 board::getPieces(color c, piece p) const {
+U64 Board::getPieces(Color c, Piece p) const {
     return pieceBB[(int)c] & pieceBB[(int)p + 2];
 }
 
+Piece Board::getLastCapture() const {
+    return captureList.back();
+}
+
 // Takes two integers corresponding to squares, and returns whether they are in the same rank.
-bool board::sameRank(unsigned int square1, unsigned int square2) const{
+bool Board::sameRank(unsigned int square1, unsigned int square2) const{
     return (square1 >> 3) == (square2 >> 3);
 }
 
 // Takes two integers corresponding to squares, and returns whether they are in the same file.
-bool board::sameFile(unsigned int square1, unsigned int square2) const {
+bool Board::sameFile(unsigned int square1, unsigned int square2) const {
     return (square1 & 7) == (square2 & 7);
 }
 
 // Takes two integers corresponding to squares, and returns whether they are in the same diagonal.
-bool board::sameDiagonal(unsigned int square1, unsigned int square2) const {
+bool Board::sameDiagonal(unsigned int square1, unsigned int square2) const {
     return bishop_attacks(lookup[square1]) & bishop_attacks(lookup[square2]);
 }
 // Checks to see if there are any pieces between two given squares. 
-bool board::inBetween(unsigned int square1, unsigned int square2) const {
+bool Board::inBetween(unsigned int square1, unsigned int square2) const {
     if (square1 > square2) {
         int tmp = square1;
         square1 = square2;
@@ -144,34 +136,34 @@ bool board::inBetween(unsigned int square1, unsigned int square2) const {
 } 
 
 // Takes a move, and tests if it is a "pseudo-legal" move.
-bool board::legalMove(class move m) const {
+bool Board::legalMove(class Move m) const {
     int start = m.getStart();
     int end = m.getEnd();
     int flags = m.getFlags();
     bool capture = m.getCapture();
     bool prom = m.getProm();
     int type = m.getType();
-    piece p = getPiece(start);
-    color c = getColor(start);
-    color opp = (color) (((int)c+1)%2);
+    Piece p = getPiece(start);
+    Color c = getColor(start);
+    Color opp = (Color) (((int)c+1)%2);
     U64 startBB = lookup[start];
     U64 endBB = lookup[end];
-    move lastMove = moveList.back();
-    if (getPiece(start) == piece::None) {
+    Move lastMove = moveList.back();
+    if (getPiece(start) == Piece::None) {
         return false;
     } 
-    if (whiteMove != (c == color::White)) {
+    if (whiteMove != (c == Color::White)) {
         return false;
     }
-    if (capture && (getColor(end) != opp) && (p != piece::Pawn)) {
-        return false;
-    }
-
-    if (!capture && (getPiece(end) != piece::None)) {
+    if (capture && (getColor(end) != opp) && (p != Piece::Pawn)) {
         return false;
     }
 
-    if (prom && (!(startBB & Rank7) || (p != piece::Pawn))) {
+    if (!capture && (getPiece(end) != Piece::None)) {
+        return false;
+    }
+
+    if (prom && (!(startBB & Rank7) || (p != Piece::Pawn))) {
         return false;
     }
 
@@ -187,17 +179,17 @@ bool board::legalMove(class move m) const {
         return false;
     }
 
-    if (flags == 1 && p != piece::Pawn) {
+    if (flags == 1 && p != Piece::Pawn) {
         return false;
     }
 
     if (!prom && !capture && ((type >> 1) == 1)) { // castling
-        if (c == color::White) {
-            if (p != piece::King) {
+        if (c == Color::White) {
+            if (p != Piece::King) {
                 return false;
             }
             if (end == 2) {
-                if (getPiece(1) == piece::None) {
+                if (getPiece(1) == Piece::None) {
                     return (castle & 2) && ((type & 1) == 1);            
                 }
                 return false;
@@ -205,11 +197,11 @@ bool board::legalMove(class move m) const {
                 return (castle & 1) && ((type & 1) == 0);
             }
         } else {
-            if (p != piece::King) {
+            if (p != Piece::King) {
                 return false;
             }
             if (end == 58) {
-                if (getPiece(56) == piece::None) {
+                if (getPiece(56) == Piece::None) {
                     return (castle & 8) && ((type & 1) == 1);            
                 }
                 return false;
@@ -219,11 +211,11 @@ bool board::legalMove(class move m) const {
         }
     }
     
-    if (p == piece::Pawn) {
+    if (p == Piece::Pawn) {
         if (capture) {
             if (type == 1) { // en passant
                 if (lastMove.getFlags() == 1) {
-                    if (c == color::White) {
+                    if (c == Color::White) {
                         return (lastMove.getEnd() == end - 8) && (pawn_attacks(startBB, c) & endBB);
                     } else {
                         return (lastMove.getEnd() == end + 8) && (pawn_attacks(startBB, c) & endBB);
@@ -244,29 +236,29 @@ bool board::legalMove(class move m) const {
                 return double_pawn_moves(startBB, c) & endBB;
             }
         }
-    } else if (p == piece::Knight) {
+    } else if (p == Piece::Knight) {
         return knight_attacks(startBB) & endBB;
-    } else if (p == piece::Bishop) {
+    } else if (p == Piece::Bishop) {
         return bishop_attacks(startBB) & endBB;
-    } else if (p == piece::Rook) {
+    } else if (p == Piece::Rook) {
         return rook_attacks(startBB) & endBB;
-    } else if (p == piece::Queen) {
+    } else if (p == Piece::Queen) {
         return queen_attacks(startBB) & endBB;
-    } else if (p == piece::King) {
+    } else if (p == Piece::King) {
         return king_attacks(startBB) & endBB;
     }
     return false;
 }
 
 // Takes a square and color and determines whether that player is attacking that square. 
-bool board::attacked(unsigned int square, color c) const {
+bool Board::attacked(unsigned int square, Color c) const {
     U64 sq = lookup[square]; 
-    if (sq & (pawn_attacks(getPieces(c, piece::Pawn), c) | 
-                knight_attacks(getPieces(c, piece::Knight)))) {
+    if (sq & (pawn_attacks(getPieces(c, Piece::Pawn), c) | 
+                knight_attacks(getPieces(c, Piece::Knight)))) {
         return true;
     } 
-    if (sq & bishop_attacks(getPieces(c, piece::Bishop))) {
-        U64 b = getPieces(c, piece::Bishop); 
+    if (sq & bishop_attacks(getPieces(c, Piece::Bishop))) {
+        U64 b = getPieces(c, Piece::Bishop); 
         int count = 0;
         while (b > 0) {
             if (b & 1) {
@@ -280,8 +272,8 @@ bool board::attacked(unsigned int square, color c) const {
             ++count;
         }
     } 
-    if (sq & rook_attacks(getPieces(c, piece::Rook))) {
-        U64 b = getPieces(c, piece::Rook); 
+    if (sq & rook_attacks(getPieces(c, Piece::Rook))) {
+        U64 b = getPieces(c, Piece::Rook); 
         int count = 0;
         while (b > 0) {
             if (b & 1) {
@@ -295,8 +287,8 @@ bool board::attacked(unsigned int square, color c) const {
             ++count;
         }
     } 
-    if (sq & queen_attacks(getPieces(c, piece::Queen))) {
-        U64 b = getPieces(c, piece::Queen); 
+    if (sq & queen_attacks(getPieces(c, Piece::Queen))) {
+        U64 b = getPieces(c, Piece::Queen); 
         int count = 0;
         while (b > 0) {
             if (b & 1) {
@@ -314,38 +306,38 @@ bool board::attacked(unsigned int square, color c) const {
 }
 
 // Takes a square, and returns the color of the piece on the square
-color board::getColor(unsigned int square) const {
+Color Board::getColor(unsigned int square) const {
     U64 b = lookup[square];
-    if (b & getPieces(color::White)) {
-        return color::White;
-    } else if (b & getPieces(color::Black)) {
-        return color::Black;
+    if (b & getPieces(Color::White)) {
+        return Color::White;
+    } else if (b & getPieces(Color::Black)) {
+        return Color::Black;
     }
-    return color::None;
+    return Color::None;
 }
 
 // Takes a square, and returns the type of the piece on the square.
-piece board::getPiece(unsigned int square) const {
+Piece Board::getPiece(unsigned int square) const {
     U64 b = lookup[square];
     for (int i = 0; i < 6; i++) {
-        if (b & getPieces((piece) i)) {
-            return (piece) i;
+        if (b & getPieces((Piece) i)) {
+            return (Piece) i;
         }
     }
-    return piece::None;
+    return Piece::None;
 }
 
 // Returns whether the current player is in check or not.
-bool board::inCheck() const {
-    color c, opp;    
+bool Board::inCheck() const {
+    Color c, opp;    
     if (whiteMove) {
-        c = color::White;
-        opp = color::Black;
+        c = Color::White;
+        opp = Color::Black;
     } else {
-        c = color::Black;
-        opp = color::White;
+        c = Color::Black;
+        opp = Color::White;
     }
-    U64 kingLoc = getPieces(c, piece::King);
+    U64 kingLoc = getPieces(c, Piece::King);
     int kingSquare = 0;
     while (kingLoc > 1) {
         kingSquare++;
@@ -355,7 +347,7 @@ bool board::inCheck() const {
 }
 
 // Takes a move, and executes the move on the board if it is legal.
-bool board::makeMove(move m) {
+bool Board::makeMove(Move m) {
     // Get all the information from the move.
     int start = m.getStart();
     int end = m.getEnd();
@@ -368,17 +360,17 @@ bool board::makeMove(move m) {
     U64 endBB = lookup[end];
     U64 startEndBB = startBB ^ endBB;
     // Get the start and end pieces.
-    piece startP = getPiece(start);
-    color startC = getColor(start);
-    piece endP = getPiece(end);
-    color endC = getColor(end);
-    color opp = (color) (((int) startC + 1) % 2);
+    Piece startP = getPiece(start);
+    Color startC = getColor(start);
+    Piece endP = getPiece(end);
+    Color endC = getColor(end);
+    Color opp = (Color) (((int) startC + 1) % 2);
     bool checked = inCheck();
     // Initialize hash index values for start and end pieces.
     int sHashIndex = 6 * (int) startC + (int) startP;
     int eHashIndex = 6 * (int) endC + (int) endP;
     // Determines the square of the king
-    U64 kingLoc = getPieces(startC, piece::King);
+    U64 kingLoc = getPieces(startC, Piece::King);
     int kingSquare = 0;
     while (kingLoc > 1) {
         kingSquare++;
@@ -412,8 +404,8 @@ bool board::makeMove(move m) {
     }
 
     if (flags == 5) { // en passant
-        endP = piece::Pawn;
-        if (startC == color::White) {
+        endP = Piece::Pawn;
+        if (startC == Color::White) {
             pieceBB[2] ^= lookup[end - 8];    
             pieceBB[1] ^= lookup[end - 8];
             tmpHashVal ^= hashTable[end - 8][6];
@@ -443,7 +435,7 @@ bool board::makeMove(move m) {
             U64 rookBB;
             if ((type & 1) == 0) { // kingside
                 if (!attacked(kingSquare + 1, opp) && !attacked(kingSquare + 2, opp)) { // not castle through check
-                    if (startC == color::White) {
+                    if (startC == Color::White) {
                         rookBB = lookup[5] ^ lookup[7];
                         castle ^= 0b0001;
                         tmpHashVal ^= hashTable[5][3];
@@ -465,7 +457,7 @@ bool board::makeMove(move m) {
                 }
             } else { // queenside
                 if (!attacked(kingSquare - 1, opp) && !attacked(kingSquare - 2, opp)) { // not castle through check
-                    if (startC == color::White) {
+                    if (startC == Color::White) {
                         rookBB = lookup[0] ^ lookup[3];
                         castle ^= 0b0010;
                         tmpHashVal ^= hashTable[0][3];
@@ -495,7 +487,7 @@ bool board::makeMove(move m) {
         } 
     } 
     
-    if (startP == piece::Rook) {
+    if (startP == Piece::Rook) {
         if (start == 0) {
             castle ^= 0b0010;
             tmpHashVal ^= specialHashTable[2];
@@ -511,8 +503,8 @@ bool board::makeMove(move m) {
         }
     }
 
-    if (startP == piece::King) {
-        if (startC == color::White) {
+    if (startP == Piece::King) {
+        if (startC == Color::White) {
             castle ^= 0b0011;
             tmpHashVal ^= specialHashTable[1];
             tmpHashVal ^= specialHashTable[2];
@@ -523,14 +515,14 @@ bool board::makeMove(move m) {
         }
     }
     int newKingSquare = 0;
-    kingLoc = getPieces(startC, piece::King);
+    kingLoc = getPieces(startC, Piece::King);
     while (kingLoc > 1) {
         newKingSquare++;
         kingLoc >>= 1;
     } 
 
     whiteMove = !whiteMove;
-    moveList.push_back(move(start, end, flags));
+    moveList.push_back(Move(start, end, flags));
     captureList.push_back(endP);
     enPassantList.push_back(enPassant);
     castleList.push_back(castle);
@@ -544,13 +536,13 @@ bool board::makeMove(move m) {
     return true;
 }
 
-void board::unmakeMove() {
+void Board::unmakeMove() {
     whiteMove = !whiteMove;
-    move lastMove = moveList.back();
-    piece endP = captureList.back();
-    color endC = color::White;
+    Move lastMove = moveList.back();
+    Piece endP = captureList.back();
+    Color endC = Color::White;
     if (whiteMove) {
-        endC = color::Black;
+        endC = Color::Black;
     }
 
     bool prom = lastMove.getProm();
@@ -569,135 +561,98 @@ void board::unmakeMove() {
     int flags = lastMove.getFlags();
     int type = lastMove.getType();
 
-    color startC = getColor(end);
-    piece startP;
+    Color startC = getColor(end);
+    Piece startP;
 
     if (!prom) {
         startP = getPiece(end); 
     } else {
-        startP = piece::Pawn;
+        startP = Piece::Pawn;
     }
 
     U64 startBB = lookup[start];
     U64 endBB = lookup[end];
     U64 startEndBB = startBB ^ endBB;
 
-    int sHashIndex = 6 * (int) startC + (int) startP;
-    int eHashIndex = 0;
-    
-    if (capture) {
-        eHashIndex = 6 * (int) endC + (int) endP;
-    }
-
-    U64 tmpHashVal = hashVal; 
-    tmpHashVal ^= specialHashTable[0];
-
     pieceBB[(int)startP + 2] ^= startEndBB; 
     pieceBB[(int)startC] ^= startEndBB;
 
-    tmpHashVal ^= hashTable[start][sHashIndex];
-    tmpHashVal ^= hashTable[end][sHashIndex];
-
     if (flags == 5) { // en passant
-        endP = piece::Pawn;
-        if (startC == color::White) {
+        endP = Piece::Pawn;
+        if (startC == Color::White) {
             pieceBB[2] ^= lookup[end - 8];    
             pieceBB[1] ^= lookup[end - 8];
-            tmpHashVal ^= hashTable[end - 8][6];
-            tmpHashVal ^= hashTable[end][6];
         } else {
             pieceBB[2] ^= lookup[end + 8];    
             pieceBB[0] ^= lookup[end + 8];
-            tmpHashVal ^= hashTable[end + 8][0];
-            tmpHashVal ^= hashTable[end][0];
         }
     } else if (capture) {
         pieceBB[(int) endP + 2] ^= endBB;
         pieceBB[(int) endC] ^= endBB;
-        tmpHashVal ^= hashTable[end][eHashIndex];
     }
 
     if (prom) {
         int promPiece = 1 + (type & 3);
         pieceBB[promPiece + 2] ^= endBB;
         pieceBB[2] ^= endBB;
-        tmpHashVal ^= hashTable[end][sHashIndex];
-        tmpHashVal ^= hashTable[end][6 * (int) startC + promPiece];
     } 
     
     if (((type >> 1) & 1) == 1) { // castling
         if (!inCheck()) {
             U64 rookBB;
             if ((type & 1) == 0) { // kingside
-                if (startC == color::White) {
+                if (startC == Color::White) {
                     rookBB = lookup[5] ^ lookup[7];
-                    tmpHashVal ^= hashTable[5][3];
-                    tmpHashVal ^= hashTable[7][3];
                 } else { 
                     rookBB = lookup[61] ^ lookup[63];
-                    tmpHashVal ^= hashTable[61][9];
-                    tmpHashVal ^= hashTable[63][9];
                 }
                 pieceBB[5] ^= rookBB;
                 pieceBB[(int) startC] ^= rookBB;
             } else { // queenside
-                if (startC == color::White) {
+                if (startC == Color::White) {
                     rookBB = lookup[0] ^ lookup[3];
-                    tmpHashVal ^= hashTable[0][3];
-                    tmpHashVal ^= hashTable[3][3];
                 } else {
                     rookBB = lookup[54] ^ lookup[57];
-                    tmpHashVal ^= hashTable[54][9];
-                    tmpHashVal ^= hashTable[57][9];
                 }
                 pieceBB[5] ^= rookBB;
                 pieceBB[(int) startC] ^= rookBB;
             }
         }
     } 
-
-    
-    if (startP == piece::Rook) {
-        if (start == 0) {
-            tmpHashVal ^= specialHashTable[2];
-        } else if (start == 7) {
-            tmpHashVal ^= specialHashTable[1];
-        } else if (start == 54) {
-            tmpHashVal ^= specialHashTable[4];
-        } else if (start == 63) {
-            tmpHashVal ^= specialHashTable[3];
-        }
-    }
-
-    if (startP == piece::King) {
-        if (startC == color::White) {
-            tmpHashVal ^= specialHashTable[1];
-            tmpHashVal ^= specialHashTable[2];
-        } else {
-            tmpHashVal ^= specialHashTable[3];
-            tmpHashVal ^= specialHashTable[4];
-        }
-    }
 }
+
+bool Board::inCheckmate() {
+    if (inCheck()) {
+        for (Move m : getLegalMoves()) {
+            if (makeMove(m)) {
+                unmakeMove();                
+                return false;
+            }
+        }
+        return true;
+    }
+    return false;
+}
+
 // Returns a vector of the possible moves.
-std::vector<move> board::getLegalMoves() {
+std::vector<Move> Board::getLegalMoves() const {
     U64 pieces; 
-    color c;
-    move m(0, 0, 0);
-    std::vector<move> moves;
+    Color c;
+    Move m(0, 0, 0);
+    std::vector<Move> moves;
     if (whiteMove) {
         pieces = pieceBB[0];
-        c = color::White;
+        c = Color::White;
     } else {
         pieces = pieceBB[1];
-        c = color::Black;
+        c = Color::Black;
     }
     int count = 0;
     while (pieces > 0) {
         if ((pieces & 1) == 1) {
             U64 pBB = lookup[count]; 
-            piece p = getPiece(count);
-            if (p == piece::Pawn) {
+            Piece p = getPiece(count);
+            if (p == Piece::Pawn) {
                 U64 pawnAttacks = pawn_attacks(pBB, c);
                 U64 pawnMoves = single_pawn_moves(pBB, c) | double_pawn_moves(pBB, c);
                 int attCount = 0;
@@ -705,13 +660,13 @@ std::vector<move> board::getLegalMoves() {
                 while (pawnAttacks > 0) {
                     if ((pawnAttacks & 1) == 1) {
                         for (int i = 8; i <= 11; i++) {
-                            move m(count, attCount, i);
+                            Move m(count, attCount, i);
                             if (legalMove(m)) {
                                 moves.push_back(m);
                             }
                         }
                         for (int i = 4; i <= 5; i++) {
-                            move m(count, attCount, i);
+                            Move m(count, attCount, i);
                             if (legalMove(m)) {
                                 moves.push_back(m);
                             }
@@ -723,13 +678,13 @@ std::vector<move> board::getLegalMoves() {
                 while (pawnMoves > 0) {
                     if ((pawnMoves & 1) == 1) {
                         for (int i = 12; i <= 15; i++) {
-                            move m(count, moveCount, i);
+                            Move m(count, moveCount, i);
                             if (legalMove(m)) {
                                 moves.push_back(m);
                             }
                         }
                         for (int i = 0; i <= 1; i++) {
-                            move m(count, moveCount, i);
+                            Move m(count, moveCount, i);
                             if (legalMove(m)) {
                                 moves.push_back(m);
                             }
@@ -738,16 +693,16 @@ std::vector<move> board::getLegalMoves() {
                     moveCount++;
                     pawnMoves >>= 1;
                 }
-            } else if (p == piece::Knight) {
+            } else if (p == Piece::Knight) {
                 U64 knightMoves = knight_attacks(pBB);
                 int moveCount = 0;
                 while (knightMoves > 0) {
                     if ((knightMoves & 1) == 1) {
-                        move m(count, moveCount, 0);
+                        Move m(count, moveCount, 0);
                         if (legalMove(m)) {
                             moves.push_back(m);
                         }
-                        m = move(count, moveCount, 4);
+                        m = Move(count, moveCount, 4);
                         if (legalMove(m)) {
                             moves.push_back(m);
                         }
@@ -755,16 +710,16 @@ std::vector<move> board::getLegalMoves() {
                     moveCount++;
                     knightMoves >>= 1;
                 }
-            } else if (p == piece::Bishop) {
+            } else if (p == Piece::Bishop) {
                 U64 bishopMoves = bishop_attacks(pBB);
                 int moveCount = 0;
                 while (bishopMoves > 0) {
                     if ((bishopMoves & 1) == 1) {
-                        move m(count, moveCount, 0);
+                        Move m(count, moveCount, 0);
                         if (legalMove(m)) {
                             moves.push_back(m);
                         }
-                        m = move(count, moveCount, 4);
+                        m = Move(count, moveCount, 4);
                         if (legalMove(m)) {
                             moves.push_back(m);
                         }
@@ -772,16 +727,16 @@ std::vector<move> board::getLegalMoves() {
                     moveCount++;
                     bishopMoves >>= 1;
                 }
-            } else if (p == piece::Rook) {
+            } else if (p == Piece::Rook) {
                 U64 rookMoves = rook_attacks(pBB);
                 int moveCount = 0;
                 while (rookMoves > 0) {
                     if ((rookMoves & 1) == 1) {
-                        move m(count, moveCount, 0);
+                        Move m(count, moveCount, 0);
                         if (legalMove(m)) {
                             moves.push_back(m);
                         }
-                        m = move(count, moveCount, 4);
+                        m = Move(count, moveCount, 4);
                         if (legalMove(m)) {
                             moves.push_back(m);
                         }
@@ -789,16 +744,16 @@ std::vector<move> board::getLegalMoves() {
                     moveCount++;
                     rookMoves >>= 1;
                 }
-            } else if (p == piece::Queen) {
+            } else if (p == Piece::Queen) {
                 U64 queenMoves = queen_attacks(pBB);
                 int moveCount = 0;
                 while (queenMoves > 0) {
                     if ((queenMoves & 1) == 1) {
-                        move m(count, moveCount, 0);
+                        Move m(count, moveCount, 0);
                         if (legalMove(m)) {
                             moves.push_back(m);
                         }
-                        m = move(count, moveCount, 4);
+                        m = Move(count, moveCount, 4);
                         if (legalMove(m)) {
                             moves.push_back(m);
                         }
@@ -806,16 +761,16 @@ std::vector<move> board::getLegalMoves() {
                     moveCount++;
                     queenMoves >>= 1;
                 }
-            } else if (p == piece::King) {
+            } else if (p == Piece::King) {
                 U64 kingMoves = king_attacks(pBB);
                 int moveCount = 0;
                 while (kingMoves > 0) {
                     if ((kingMoves & 1) == 1) {
-                        move m(count, moveCount, 0);
+                        Move m(count, moveCount, 0);
                         if (legalMove(m)) {
                             moves.push_back(m);
                         }
-                        m = move(count, moveCount, 4);
+                        m = Move(count, moveCount, 4);
                         if (legalMove(m)) {
                             moves.push_back(m);
                         }
@@ -829,31 +784,31 @@ std::vector<move> board::getLegalMoves() {
         count++;
         pieces >>= 1;
     }
-    m = move(4, 6, 2);
+    m = Move(4, 6, 2);
     if (legalMove(m)) {
         moves.push_back(m);
     }
-    m = move(4, 2, 3);
+    m = Move(4, 2, 3);
     if (legalMove(m)) {
         moves.push_back(m);
     }
-    m = move(60, 62, 2);
+    m = Move(60, 62, 2);
     if (legalMove(m)) {
         moves.push_back(m);
     }
-    m = move(60, 58, 3);
+    m = Move(60, 58, 3);
     if (legalMove(m)) {
         moves.push_back(m);
     }
     return moves;
 }
 
-double board::boardScore() const {
+double Board::boardScore() const {
     double eval = 0;
     double pieceValues[] = {100, 320, 330, 500, 900, 20000};
     for (int p = 0; p < 6; p++) {
         for (int c = 0; c < 2; c++) {
-            U64 pieces = getPieces((color) c, (piece) p);
+            U64 pieces = getPieces((Color) c, (Piece) p);
             int count = 0;
             while (pieces > 0) {
                 if ((pieces & 1) == 1) {
@@ -874,4 +829,53 @@ double board::boardScore() const {
         eval *= -1;
     }
     return eval;
+}
+
+bool compareTo(Board& board, Move a, Move b) { // return a < b
+    bool aCapture, bCapture;
+    U64 hash = board.getHashVal();
+    if (board.makeMove(a)) {
+        aCapture = board.getLastCapture() != Piece::None;
+        board.unmakeMove();
+    } else {
+        return true;
+    }
+    if (board.makeMove(b)) {
+        bCapture = board.getLastCapture() != Piece::None;
+        board.unmakeMove();
+    } else {
+        return false;
+    }
+    HashEntry boardEntry = board.transTable[hash % 10000];
+    if (boardEntry.type != 1 && boardEntry.zobrist == hash) { // checks if there is a Hash Node
+        if (boardEntry.bestMove.equals(a)) {
+            return false;
+        }
+        if (boardEntry.bestMove.equals(b)) {
+            return true;
+        }
+    }
+    if (aCapture) {
+        return bCapture;
+    }
+    if (bCapture) {
+        return true;
+    }
+    return a.getStart() < b.getStart();
+}
+   
+// Inserts the given HashEntry into the transportation table at the given index.
+void Board::insertTransTable(int index, HashEntry h) {
+    if (transTable[index].type != -1) {
+        HashEntry other = transTable[index];
+        if (other.zobrist != h.zobrist) {
+            transTable[index] = h; 
+        } else {
+            if (other.depth < h.depth) {
+                transTable[index] = h; 
+            }
+        }
+    } else {
+        transTable[index] = h;
+    }
 }

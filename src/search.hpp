@@ -4,6 +4,8 @@
 #include <utility>
 #include "board.hpp"
 
-std::pair<double, move> alphabeta(board &b, int depth, double alpha, double beta);
-std::pair<double, move> quiesce(board &b, double alpha, double beta, move bestMove);
+const int MAX_VALUE = 50000;
+const int MATE_VALUE = 25000;
+std::pair<double, Move> alphabeta(Board &b, int depth, double alpha, double beta);
+std::pair<double, Move> quiesce(Board &b, double alpha, double beta, Move bestMove);
 #endif /*SEARCH_HPP*/

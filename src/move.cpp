@@ -1,6 +1,15 @@
 #include "move.hpp"
 
-move::move(unsigned int s, unsigned int e, unsigned int f) {
+Move::Move() {
+    start = 0;
+    end = 0;
+    flags = 0;
+    capture = false;
+    promotion = false;
+    type = 0;
+}
+
+Move::Move(unsigned int s, unsigned int e, unsigned int f) {
     start = s; 
     end = e;
     flags = f;
@@ -9,41 +18,39 @@ move::move(unsigned int s, unsigned int e, unsigned int f) {
     type = f & 3;
 }
 
-int move::getStart() {
+int Move::getStart() const {
     return start;
 }
 
-int move::getEnd() {
+int Move::getEnd() const {
     return end;
 }
 
-int move::getFlags() {
+int Move::getFlags() const {
     return flags;
 }
 
-bool move::getCapture() {
+bool Move::getCapture() const {
     return capture;
 }
 
-bool move::getProm() {
+bool Move::getProm() const {
     return promotion;
 }
 
-int move::getType() {
+int Move::getType() const {
     return type;
 }
 
-std::string move::toString() {
+std::string Move::toString() const {
     char sRank = start % 8 + 97;
     char eRank = end % 8 + 97;
     int sFile = start / 8 + 1;
     int eFile = end / 8 + 1;
-    //std::string s = std::to_string(start);
-    //s += " " + std::to_string(end); s += " " + std::to_string(flags);
     return sRank + std::to_string(sFile) + " " + eRank + std::to_string(eFile) + " " + std::to_string(start) + " " 
         + std::to_string(end) + " " + std::to_string(flags);
 }
 
-int move::compareTo(move other) {
-    return 0;
+bool Move::equals(const Move& a) const {
+    return (a.getStart() == getStart()) && (a.getEnd() == getEnd()) && (a.getFlags() == getFlags());
 }

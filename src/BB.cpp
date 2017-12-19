@@ -1,8 +1,8 @@
 #include "BB.hpp"
 
 // Takes a bitboard corresponding to pawn locations. Returns the set of squares that are attacked by them.
-U64 pawn_attacks(U64 pawns, color c) {
-    if (c == color::White) {
+U64 pawn_attacks(U64 pawns, Color c) {
+    if (c == Color::White) {
         U64 b = (pawns << 7) & ~HFile;
         return b | ((pawns << 9) & ~AFile);
     } else {
@@ -13,16 +13,16 @@ U64 pawn_attacks(U64 pawns, color c) {
 }
 
 // Takes a bitboard corresponding to pawn locations. Returns the set of squares the pawns can move to.
-U64 single_pawn_moves(U64 pawns, color c) {
-    if (c == color::White) {
+U64 single_pawn_moves(U64 pawns, Color c) {
+    if (c == Color::White) {
         return pawns << 8;
     } else {
         return pawns >> 8;
     }
 }
 
-U64 double_pawn_moves(U64 pawns, color c) {
-    if (c == color::White) {
+U64 double_pawn_moves(U64 pawns, Color c) {
+    if (c == Color::White) {
         return (pawns & Rank2) << 16; 
     } else {
         return (pawns & Rank7) >> 16; 
