@@ -24,10 +24,10 @@ std::pair<int, Move> alphabeta(Board &b, int depth, int alpha, int beta) {
         }
     }
     if (depth == 0) {
-        int score = b.boardScore();
+        //int score = b.boardScore();
+        int score = quiesce(b, alpha, beta);
         b.insertTransTable(hashIndex, HashEntry(hash, bestMove, score, depth, 0, false));
         return std::make_pair(b.boardScore(), bestMove);
-//        return quiesce(b, alpha, beta, bestMove);
     }
     auto moveList = b.getLegalMoves();
     std::sort(moveList.begin(), moveList.end(), [&b](Move a, Move c) {return b.compareTo(a, c);});
@@ -37,7 +37,7 @@ std::pair<int, Move> alphabeta(Board &b, int depth, int alpha, int beta) {
             b.unmakeMove();
             if (-score.first >= beta) {
                 b.insertTransTable(hashIndex, HashEntry(hash, bestMove, beta, depth, 1, false)); // fail-high
-                return std::make_pair(beta, m);
+                return std::make_pair(beta, bestMove);
             }
             if (-score.first > alpha) {
                 bestMove = m;
@@ -53,29 +53,29 @@ std::pair<int, Move> alphabeta(Board &b, int depth, int alpha, int beta) {
     return std::make_pair(alpha, bestMove);
 }
 
-std::pair<int, Move> quiesce(Board &b, int alpha, int beta, Move bestMove) {
+int quiesce(Board &b, int alpha, int beta) {
     int stand_pat = b.boardScore();
     if (stand_pat >= beta) {
-        return std::make_pair(stand_pat, bestMove);
+        return stand_pat;
     }
     if (alpha < stand_pat) {
         alpha = stand_pat;
     }
-    for (Move m : b.getLegalMoves()) {
+    auto moveList = b.getLegalMoves();
+    std::sort(moveList.begin(), moveList.end(), [&b](Move a, Move c) {return b.compareTo(a, c);});
+    for (Move m : moveList) {
         if (m.getCapture()) {
             if (b.makeMove(m)) {
-                int score = -quiesce(b, -beta, -alpha, bestMove).first;
+                int score = -quiesce(b, -beta, -alpha);
                 b.unmakeMove();
-
                 if (score >= beta) {
-                    return std::make_pair(beta, bestMove);
+                    return beta;
                 }
                 if (score > alpha) {
                     alpha = score;
-                    bestMove = m;
                 }
             }
         }
     }
-    return std::make_pair(alpha, bestMove);
+    return alpha;
 }

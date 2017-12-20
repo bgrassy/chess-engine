@@ -58,6 +58,7 @@ class Board {
     HashEntry transTableDepth[10000];
     HashEntry transTableAlways[10000];
     std::vector<Move> moveList;
+    int pieceValues[6] = {100, 320, 330, 500, 900, 20000};
     short pieceTable[6][64] = {
 		// pawn
         {
@@ -166,7 +167,7 @@ class Board {
 
     bool inCheck() const;
 
-    bool makeMove(Move m);
+    bool makeMove(Move &m);
 
     void unmakeMove();
 

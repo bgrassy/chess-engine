@@ -347,7 +347,7 @@ bool Board::inCheck() const {
 }
 
 // Takes a move, and executes the move on the board if it is legal.
-bool Board::makeMove(Move m) {
+bool Board::makeMove(Move& m) {
     // Get all the information from the move.
     int start = m.getStart();
     int end = m.getEnd();
@@ -793,8 +793,8 @@ int Board::boardScore() const {
 
 bool Board::compareTo(const Move &a, const Move &b) { // return a < b
     //bool aCapture, bCapture;
-    bool aCapture = getPiece(a.getEnd()) != Piece::None;
-    bool bCapture = getPiece(b.getEnd()) != Piece::None;
+    int aCapture = ((int) getPiece(a.getEnd()) + 1) % 7;
+    int bCapture = ((int) getPiece(b.getEnd()) + 1) % 7;
     U64 hash = getHashVal();
     HashEntry boardEntry1 = transTableDepth[hash % 10000];
     HashEntry boardEntry2 = transTableAlways[hash % 10000];
@@ -814,13 +814,7 @@ bool Board::compareTo(const Move &a, const Move &b) { // return a < b
             return false;
         }
     }
-    if (aCapture) {
-        return !bCapture;
-    }
-    if (bCapture) {
-        return false;
-    }
-    return a.getStart() < b.getStart();
+    return aCapture > bCapture;
 }
 
    

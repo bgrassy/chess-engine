@@ -59,7 +59,7 @@ void game(Board BOARD) {
         }
         std::cout << "computer's move..." << std::endl;
         BOARD.flushTransTable();
-        Move best = alphabeta(BOARD, 4, -MAX_VALUE, MAX_VALUE).second;
+        Move best = alphabeta(BOARD, 8, -MAX_VALUE, MAX_VALUE).second;
         if (best.getStart() != 0 || best.getEnd() != 0) {
             BOARD.makeMove(best);
             std::cout << best.toString() << std::endl;
