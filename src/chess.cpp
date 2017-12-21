@@ -12,6 +12,8 @@
 
 using namespace Types;
 
+int MAX_DEPTH = 6;
+
 int stringToSquare(std::string s) {
     return 8 * (std::stoi(s.substr(1,1)) - 1) + ((int)s.at(0) - 97);
 }
@@ -40,6 +42,7 @@ void game(Board BOARD) {
             exit(0);
         }
         while (!goodMove) {
+            std::cout << BOARD.checkCount() << std::endl;
             std::cout << "move: " << std::endl;
             std::getline(std::cin, mov);
             std::stringstream os(mov);
@@ -59,7 +62,7 @@ void game(Board BOARD) {
         }
         std::cout << "computer's move..." << std::endl;
         BOARD.flushTransTable();
-        Move best = alphabeta(BOARD, 8, -MAX_VALUE, MAX_VALUE).second;
+        Move best = alphabeta(BOARD, MAX_DEPTH, -MAX_VALUE, MAX_VALUE).second;
         if (best.getStart() != 0 || best.getEnd() != 0) {
             BOARD.makeMove(best);
             std::cout << best.toString() << std::endl;
@@ -103,6 +106,7 @@ void gameTest(Board BOARD) {
 }
 
 int main() {
+    initmagicmoves();
     Board BOARD;
     game(BOARD);
     return 0;

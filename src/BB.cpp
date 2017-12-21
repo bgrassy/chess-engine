@@ -46,65 +46,36 @@ U64 knight_attacks(U64 knights) {
 
 // Takes a bitboard holding the locations of bishops. Returns a bitboard holding all the squares that
 // are attacked by those bishops.
-U64 bishop_attacks(U64 b) {
-    std::vector<int> indices;
-    std::set<int> attacked;
+U64 bishop_attacks(U64 bishops, U64 occupied) {
+    U64 ret = 0;
     int count = 0;
-    while (b > 0) {
-        if (b & 1) {
-            indices.push_back(count); 
+    while (bishops > 0) {
+        if (bishops & 1) {
+            ret ^= Bmagic(count, occupied);
         }
-        b >>= 1;
+        bishops >>= 1;
         ++count;
     }
-    for (int i : indices) {
-        int t1 = i + 7;
-        int t2 = i + 9;
-        int t3 = i - 7;
-        int t4 = i - 9;
-        while (t1 % 8 != 7 && t1 <= 63 && t1 >= 0) {
-            attacked.insert(t1);
-            t1 += 7;
-        }
-        while (t2 % 8 != 0 && t2 <= 63 && t2 >= 0) {
-            attacked.insert(t2);
-            t2 += 9;
-        }
-        while (t3 % 8 != 0 && t3 <= 63 && t3 >= 0) {
-            attacked.insert(t3);
-            t3 -= 7;
-        }
-        while (t4 % 8 != 7 && t4 <= 63 && t4 >= 0) {
-            attacked.insert(t4);
-            t4 -= 9;
-        }
-    }
-    U64 c = 0;
-    for (int i : attacked) {
-        c |= ((U64)1 << i);
-    }
-    return c;
+    return ret;
 }
 
 // Takes a bitboard holding rook locations. Returns the set of squares the rooks can move to.
-U64 rook_attacks(U64 rooks) {
-    U64 files[] = {AFile, BFile, CFile, DFile, EFile, FFile, GFile, HFile};
-    U64 ranks[] = {Rank1, Rank2, Rank3, Rank4, Rank5, Rank6, Rank7, Rank8};
-    U64 b = 0;
-    for (unsigned int i = 0; i < 8; i++) {
-        if (files[i] & rooks) {
-           b |= files[i]; 
+U64 rook_attacks(U64 rooks, U64 occupied) {
+    U64 ret = 0;
+    int count = 0;
+    while (rooks > 0) {
+        if (rooks & 1) {
+            ret ^= Rmagic(count, occupied);
         }
-        if (ranks[i] & rooks) {
-           b |= ranks[i]; 
-        }
+        rooks >>= 1;
+        ++count;
     }
-    return b;
+    return ret;
 }
 
 // Takes a bitboard holding queen locations. Returns the set of squares the queens can move to.
-U64 queen_attacks(U64 queen) {
-    return bishop_attacks(queen) | rook_attacks(queen);
+U64 queen_attacks(U64 queen, U64 occupied) {
+    return bishop_attacks(queen, occupied) | rook_attacks(queen, occupied);
 }
 
 // Takes a bitboard holding king locations. Returns the set of squares the kings can move to.

@@ -1,5 +1,4 @@
 #include "search.hpp"
-#define MAX_DEPTH = 4;
 
 // Alpha beta search algorithm. Takes a board and a search depth, and finds the board score
 // using an implementation of alpha beta and minimax.
@@ -24,8 +23,8 @@ std::pair<int, Move> alphabeta(Board &b, int depth, int alpha, int beta) {
         }
     }
     if (depth == 0) {
-        //int score = b.boardScore();
-        int score = quiesce(b, alpha, beta);
+        int score = b.boardScore();
+        //int score = quiesce(b, alpha, beta);
         b.insertTransTable(hashIndex, HashEntry(hash, bestMove, score, depth, 0, false));
         return std::make_pair(b.boardScore(), bestMove);
     }

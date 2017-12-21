@@ -3,6 +3,7 @@
 #include <vector>
 #include <set>
 #include "types.hpp"
+#include "MagicMoves.hpp"
 
 using namespace Types;
 typedef unsigned long long U64;
@@ -33,13 +34,13 @@ U64 knight_attacks(U64 knights);
 
 // Takes a bitboard holding the locations of bishops. Returns a bitboard holding all the squares that
 // are attacked by those bishops.
-U64 bishop_attacks(U64 b);
+U64 bishop_attacks(U64 bishops, U64 occupied);
 
 // Takes a bitboard holding rook locations. Returns the set of squares the rooks can move to.
-U64 rook_attacks(U64 rooks);
+U64 rook_attacks(U64 rooks, U64 occupied);
 
 // Takes a bitboard holding queen locations. Returns the set of squares the queens can move to.
-U64 queen_attacks(U64 queen);
+U64 queen_attacks(U64 queen, U64 occupied);
 
 // Takes a bitboard holding king locations. Returns the set of squares the kings can move to.
 U64 king_attacks(U64 king);

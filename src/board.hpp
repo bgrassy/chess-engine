@@ -7,6 +7,7 @@
 #include <random>
 #include <cmath>
 #include <algorithm>
+#include <bitset>
 #include "BB.hpp"
 #include "move.hpp"
 
@@ -46,7 +47,6 @@ class Board {
     std::vector<Piece> captureList;
     std::vector<int> castleList;
     std::vector<int> enPassantList;
-    U64 lookup[64];
     U64 pieceBB[8];
     U64 hashVal;
     U64 hashTable[64][12];
@@ -54,6 +54,8 @@ class Board {
     std::vector<class Move> legalMoves;
     std::vector<U64> hashList;
     public:
+    U64 lookup[64];
+    int zeroLookup[67];
     // our transposition table
     HashEntry transTableDepth[10000];
     HashEntry transTableAlways[10000];
@@ -132,6 +134,14 @@ class Board {
 
     U64 getHashVal() const;
 
+    int reverseLookup(U64 x) const;
+
+    int trailZeros(U64 x) const;
+
+    int popcnt(U64 x) const;
+    
+    std::vector<int> getIndices(U64 x);
+
     bool getMove() const;
 
     // Returns a bitboard representing all the pieces on the board
@@ -157,6 +167,14 @@ class Board {
     // Checks to see if there are any pieces in between the two squares. 
     bool inBetween(unsigned int square1, unsigned int square2) const;
 
+    int isoPawns(Color c);
+
+    int doublePawns(Color c);
+
+    int opposed(int pawn, Color c);
+
+    int blockedPawns(Color c);
+
     bool legalMove(Move m) const;
 
     bool attacked(unsigned int square, Color c) const;
@@ -175,7 +193,13 @@ class Board {
 
     std::vector<Move> getLegalMoves() const;
 
-    int boardScore() const;
+    std::vector<Move> getNormalMoves() const;
+
+    std::vector<Move> getCheckMoves() const;
+
+    std::vector<Move> getDoubleCheckMoves() const;
+
+    int boardScore();
 
     bool compareTo(const Move &a, const Move &b);
 
@@ -184,5 +208,7 @@ class Board {
     U64 updatedHashVal(Move m) const; 
 
     void flushTransTable();
+
+    int checkCount() const;
 };
 #endif /* BOARD_HPP */

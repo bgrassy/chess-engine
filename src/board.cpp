@@ -9,8 +9,10 @@ Board::Board() {
     pieceBB[5] = 0x8100000000000081; // rooks
     pieceBB[6] = 0x0800000000000008; // queens
     pieceBB[7] = 0x1000000000000010; // kings
+    std::fill_n(zeroLookup, 67, -1);
     for (int i = 0; i < 64; i++) {
         lookup[i] = (U64)1 << i;
+        zeroLookup[lookup[i] % 67] = i;        
     }
     moveList.push_back(Move(0, 0, 0));
     castleList.push_back(castle);
@@ -50,6 +52,34 @@ void Board::initHash() {
         // 5-12: File of en passant
         specialHashTable[i] = dist(e2);
     }
+}
+
+// assumes the number is a power of 2
+int Board::reverseLookup(U64 x) const {
+    return zeroLookup[x % 67];
+}
+
+int Board::trailZeros(U64 x) const {
+    return zeroLookup[(x & (~x + 1)) % 67];
+}
+
+int Board::popcnt(U64 x) const {
+    unsigned int c; // c accumulates the total bits set in v
+    for (c = 0; x; c++)
+    {
+          x &= x - 1; // clear the least significant bit set
+    }
+    return c;
+}
+
+std::vector<int> Board::getIndices(U64 x) {
+    std::vector<int> indices;
+    while (x != 0) {
+        int index = trailZeros(x);
+        indices.push_back(index);
+        x ^= lookup[index];
+    }
+    return indices;
 }
 
 U64 Board::getHashVal() const {
@@ -95,7 +125,7 @@ bool Board::sameFile(unsigned int square1, unsigned int square2) const {
 
 // Takes two integers corresponding to squares, and returns whether they are in the same diagonal.
 bool Board::sameDiagonal(unsigned int square1, unsigned int square2) const {
-    return bishop_attacks(lookup[square1]) & bishop_attacks(lookup[square2]);
+    return bishop_attacks(lookup[square1], 0) & bishop_attacks(lookup[square2], 0);
 }
 // Checks to see if there are any pieces between two given squares. 
 bool Board::inBetween(unsigned int square1, unsigned int square2) const {
@@ -134,6 +164,72 @@ bool Board::inBetween(unsigned int square1, unsigned int square2) const {
     }
     return false;
 } 
+
+int Board::doublePawns(Color c) {
+    int count = 0;
+    U64 pawns = getPieces(c, Piece::Pawn);
+    for (int i = 0; i < 8; i++) {
+        U64 filePawns = (1 << i) * 72340172838076673; 
+        int pawnCount = popcnt(filePawns & pawns);
+        if (pawnCount >= 2) {
+            count += pawnCount;
+        }
+    }
+    return count;
+}
+
+int Board::isoPawns(Color c) {
+    int count = 0;
+    U64 pawns = getPieces(c, Piece::Pawn);
+    int arr[8];
+    for (int i = 0; i < 8; i++) {
+        U64 filePawns = i * 72340172838076673; 
+        int pawnCount = ((std::bitset<64>)(filePawns & pawns)).count();
+        arr[i] = pawnCount;
+    }
+
+    for (int i = 0; i < 8; i++) {
+        if (i == 0) {
+            if (arr[1] == 0) {
+                count += arr[i];
+            }
+        } else if (i == 7) {
+            if (arr[6] == 0) {
+                count += arr[i];
+            }
+        } else {
+            if (arr[i - 1] == 0 && arr[i + 1] == 0) {
+                count += arr[i];
+            }
+        }
+    }
+    return count;
+}
+
+int Board::opposed(int pawn, Color c) {
+    if (c == Color::Black) {
+        for (int square = pawn; square >= 7; square-=8) {
+            if (getPiece(square) == Piece::Pawn) {
+                if (getColor(square) == Color::White) {
+                    return 1;
+                }
+            }
+        }
+    } else {
+        for (int square = pawn; square <=55; square+=8) {
+            if (getPiece(square) == Piece::Pawn) {
+                if (getColor(square) == Color::Black) {
+                    return 1;
+                }
+            }
+        }
+    }
+    return 0;
+}
+
+int Board::blockedPawns(Color c) {
+    return 0;
+}
 
 // Takes a move, and tests if it is a "pseudo-legal" move.
 bool Board::legalMove(class Move m) const {
@@ -239,11 +335,11 @@ bool Board::legalMove(class Move m) const {
     } else if (p == Piece::Knight) {
         return knight_attacks(startBB) & endBB;
     } else if (p == Piece::Bishop) {
-        return bishop_attacks(startBB) & endBB;
+        return bishop_attacks(startBB, getPieces()) & endBB;
     } else if (p == Piece::Rook) {
-        return rook_attacks(startBB) & endBB;
+        return rook_attacks(startBB, getPieces()) & endBB;
     } else if (p == Piece::Queen) {
-        return queen_attacks(startBB) & endBB;
+        return queen_attacks(startBB, getPieces()) & endBB;
     } else if (p == Piece::King) {
         return king_attacks(startBB) & endBB;
     }
@@ -257,50 +353,14 @@ bool Board::attacked(unsigned int square, Color c) const {
                 knight_attacks(getPieces(c, Piece::Knight)))) {
         return true;
     } 
-    if (sq & bishop_attacks(getPieces(c, Piece::Bishop))) {
-        U64 b = getPieces(c, Piece::Bishop); 
-        int count = 0;
-        while (b > 0) {
-            if (b & 1) {
-                if (bishop_attacks(lookup[count]) & sq) {
-                    if (!inBetween(square, count)) {
-                        return true;
-                    }
-                }
-            }
-            b >>= 1;
-            ++count;
-        }
+    if (sq & bishop_attacks(getPieces(c, Piece::Bishop), getPieces())) {
+        return true;
     } 
-    if (sq & rook_attacks(getPieces(c, Piece::Rook))) {
-        U64 b = getPieces(c, Piece::Rook); 
-        int count = 0;
-        while (b > 0) {
-            if (b & 1) {
-                if (rook_attacks(lookup[count]) & sq) {
-                    if (!inBetween(square, count)) {
-                        return true;
-                    }
-                }
-            }
-            b >>= 1;
-            ++count;
-        }
+    if (sq & rook_attacks(getPieces(c, Piece::Rook), getPieces())) {
+        return true;
     } 
-    if (sq & queen_attacks(getPieces(c, Piece::Queen))) {
-        U64 b = getPieces(c, Piece::Queen); 
-        int count = 0;
-        while (b > 0) {
-            if (b & 1) {
-                if (queen_attacks(lookup[count]) & sq) {
-                    if (!inBetween(square, count)) {
-                        return true;
-                    }
-                }
-            }
-            b >>= 1;
-            ++count;
-        }
+    if (sq & queen_attacks(getPieces(c, Piece::Queen), getPieces())) {
+        return true;
     }
     return false;
 }
@@ -338,11 +398,7 @@ bool Board::inCheck() const {
         opp = Color::White;
     }
     U64 kingLoc = getPieces(c, Piece::King);
-    int kingSquare = 0;
-    while (kingLoc > 1) {
-        kingSquare++;
-        kingLoc >>= 1;
-    } 
+    int kingSquare = reverseLookup(kingLoc);
     return attacked(kingSquare, opp);
 }
 
@@ -368,11 +424,7 @@ bool Board::makeMove(Move& m) {
     bool checked = inCheck();
     // Determines the square of the king
     U64 kingLoc = getPieces(startC, Piece::King);
-    int kingSquare = 0;
-    while (kingLoc > 1) {
-        kingSquare++;
-        kingLoc >>= 1;
-    } 
+    int kingSquare = reverseLookup(kingLoc);
 
     if (!legalMove(m)) { return false;}
 
@@ -474,12 +526,8 @@ bool Board::makeMove(Move& m) {
             castle ^= 0b1100;
         }
     }
-    int newKingSquare = 0;
     kingLoc = getPieces(startC, Piece::King);
-    while (kingLoc > 1) {
-        newKingSquare++;
-        kingLoc >>= 1;
-    } 
+    int newKingSquare = reverseLookup(kingLoc);
 
     whiteMove = !whiteMove;
     moveList.push_back(Move(start, end, flags));
@@ -594,8 +642,18 @@ bool Board::inCheckmate() {
     return false;
 }
 
-// Returns a vector of the possible moves.
 std::vector<Move> Board::getLegalMoves() const {
+    if (checkCount() == 2) {
+        return getDoubleCheckMoves();
+    } else if (checkCount() == 1) {
+        return getCheckMoves();
+    } else {
+        return getNormalMoves();
+    }
+}
+
+// Returns a vector of the possible moves.
+std::vector<Move> Board::getNormalMoves() const {
     U64 pieces; 
     Color c;
     Move m(0, 0, 0);
@@ -619,17 +677,23 @@ std::vector<Move> Board::getLegalMoves() const {
                 int moveCount = 0;
                 while (pawnAttacks > 0) {
                     if ((pawnAttacks & 1) == 1) {
-                        for (int i = 8; i <= 11; i++) {
-                            Move m(count, attCount, i);
+                        if (getPiece(attCount) != Piece::None) {
+                            if ((lookup[attCount] & Rank1) || (lookup[attCount] & Rank7)) {
+                                for (int i = 8; i <= 11; i++) {
+                                    Move m(count, attCount, i);
+                                    if (legalMove(m)) {
+                                        moves.push_back(m);
+                                    }
+                                }
+                            }
+                            Move m(count, attCount, 4);
                             if (legalMove(m)) {
                                 moves.push_back(m);
                             }
                         }
-                        for (int i = 4; i <= 5; i++) {
-                            Move m(count, attCount, i);
-                            if (legalMove(m)) {
-                                moves.push_back(m);
-                            }
+                        Move m(count, attCount, 5);
+                        if (legalMove(m)) {
+                            moves.push_back(m);
                         }
                     }
                     attCount++;
@@ -637,18 +701,20 @@ std::vector<Move> Board::getLegalMoves() const {
                 }
                 while (pawnMoves > 0) {
                     if ((pawnMoves & 1) == 1) {
-                        for (int i = 12; i <= 15; i++) {
-                            Move m(count, moveCount, i);
-                            if (legalMove(m)) {
-                                moves.push_back(m);
+                        if (getPiece(moveCount) == Piece::None) {
+                            for (int i = 12; i <= 15; i++) {
+                                Move m(count, moveCount, i);
+                                if (legalMove(m)) {
+                                    moves.push_back(m);
+                                }
                             }
+                            for (int i = 0; i <= 1; i++) {
+                                Move m(count, moveCount, i);
+                                if (legalMove(m)) {
+                                    moves.push_back(m);
+                                }
+                            } 
                         }
-                        for (int i = 0; i <= 1; i++) {
-                            Move m(count, moveCount, i);
-                            if (legalMove(m)) {
-                                moves.push_back(m);
-                            }
-                        } 
                     }
                     moveCount++;
                     pawnMoves >>= 1;
@@ -658,64 +724,76 @@ std::vector<Move> Board::getLegalMoves() const {
                 int moveCount = 0;
                 while (knightMoves > 0) {
                     if ((knightMoves & 1) == 1) {
-                        Move m(count, moveCount, 0);
-                        if (legalMove(m)) {
-                            moves.push_back(m);
-                        }
-                        m = Move(count, moveCount, 4);
-                        if (legalMove(m)) {
-                            moves.push_back(m);
+                        if (getPiece(moveCount) == Piece::None) {
+                            Move m(count, moveCount, 0);
+                            if (legalMove(m)) {
+                                moves.push_back(m);
+                            }
+                        } else {
+                            Move m(count, moveCount, 4);
+                            if (legalMove(m)) {
+                                moves.push_back(m);
+                            }
                         }
                     }
                     moveCount++;
                     knightMoves >>= 1;
                 }
             } else if (p == Piece::Bishop) {
-                U64 bishopMoves = bishop_attacks(pBB);
+                U64 bishopMoves = bishop_attacks(pBB, getPieces());
                 int moveCount = 0;
                 while (bishopMoves > 0) {
                     if ((bishopMoves & 1) == 1) {
-                        Move m(count, moveCount, 0);
-                        if (legalMove(m)) {
-                            moves.push_back(m);
-                        }
-                        m = Move(count, moveCount, 4);
-                        if (legalMove(m)) {
-                            moves.push_back(m);
+                        if (getPiece(moveCount) == Piece::None) {
+                            Move m(count, moveCount, 0);
+                            if (legalMove(m)) {
+                                moves.push_back(m);
+                            }
+                        } else {
+                            Move m(count, moveCount, 4);
+                            if (legalMove(m)) {
+                                moves.push_back(m);
+                            }
                         }
                     }
                     moveCount++;
                     bishopMoves >>= 1;
                 }
             } else if (p == Piece::Rook) {
-                U64 rookMoves = rook_attacks(pBB);
+                U64 rookMoves = rook_attacks(pBB, getPieces());
                 int moveCount = 0;
                 while (rookMoves > 0) {
                     if ((rookMoves & 1) == 1) {
-                        Move m(count, moveCount, 0);
-                        if (legalMove(m)) {
-                            moves.push_back(m);
-                        }
-                        m = Move(count, moveCount, 4);
-                        if (legalMove(m)) {
-                            moves.push_back(m);
+                        if (getPiece(moveCount) == Piece::None) {
+                            Move m(count, moveCount, 0);
+                            if (legalMove(m)) {
+                                moves.push_back(m);
+                            }
+                        } else {
+                            Move m(count, moveCount, 4);
+                            if (legalMove(m)) {
+                                moves.push_back(m);
+                            }
                         }
                     }
                     moveCount++;
                     rookMoves >>= 1;
                 }
             } else if (p == Piece::Queen) {
-                U64 queenMoves = queen_attacks(pBB);
+                U64 queenMoves = queen_attacks(pBB, getPieces());
                 int moveCount = 0;
                 while (queenMoves > 0) {
                     if ((queenMoves & 1) == 1) {
-                        Move m(count, moveCount, 0);
-                        if (legalMove(m)) {
-                            moves.push_back(m);
-                        }
-                        m = Move(count, moveCount, 4);
-                        if (legalMove(m)) {
-                            moves.push_back(m);
+                        if (getPiece(moveCount) == Piece::None) {
+                            Move m(count, moveCount, 0);
+                            if (legalMove(m)) {
+                                moves.push_back(m);
+                            }
+                        } else {
+                            Move m(count, moveCount, 4);
+                            if (legalMove(m)) {
+                                moves.push_back(m);
+                            }
                         }
                     }
                     moveCount++;
@@ -726,13 +804,16 @@ std::vector<Move> Board::getLegalMoves() const {
                 int moveCount = 0;
                 while (kingMoves > 0) {
                     if ((kingMoves & 1) == 1) {
-                        Move m(count, moveCount, 0);
-                        if (legalMove(m)) {
-                            moves.push_back(m);
-                        }
-                        m = Move(count, moveCount, 4);
-                        if (legalMove(m)) {
-                            moves.push_back(m);
+                        if (getPiece(moveCount) == Piece::None) {
+                            Move m(count, moveCount, 0);
+                            if (legalMove(m)) {
+                                moves.push_back(m);
+                            }
+                        } else {
+                            Move m(count, moveCount, 4);
+                            if (legalMove(m)) {
+                                moves.push_back(m);
+                            }
                         }
                     }
                     moveCount++;
@@ -763,7 +844,331 @@ std::vector<Move> Board::getLegalMoves() const {
     return moves;
 }
 
-int Board::boardScore() const {
+// Returns a vector of the possible moves if the player is in check
+std::vector<Move> Board::getCheckMoves() const {
+    U64 pieces; 
+    std::vector<Move> moves;
+    std::vector<int> endSquares;
+    Move m(0, 0, 0);
+    Color c, opp;    
+    if (whiteMove) {
+        pieces = pieceBB[0];
+        c = Color::White;
+        opp = Color::Black;
+    } else {
+        pieces = pieceBB[1];
+        c = Color::Black;
+        opp = Color::White;
+    }
+    U64 kingLoc = getPieces(c, Piece::King);
+    int kingSquare = reverseLookup(kingLoc);
+    if (kingLoc & pawn_attacks(getPieces(opp, Piece::Pawn), opp)) {
+        int square = 0;
+        for (int i = 0; 1; i++) {
+            if (pawn_attacks(lookup[i], opp) & kingLoc) {
+                if (getPieces(opp, Piece::Pawn) & lookup[i]) {
+                    square = i;
+                    break;
+                }
+            }
+        }
+        endSquares.push_back(square);
+    } else if (kingLoc & knight_attacks(getPieces(opp, Piece::Knight))) {
+        int square = 0;
+        for (int i = 0; 1; i++) {
+            if (knight_attacks(lookup[i]) & kingLoc) {
+                if (getPieces(opp, Piece::Knight) & lookup[i]) {
+                    square = i;
+                    break;
+                }
+            }
+        }
+        endSquares.push_back(square);
+    } else if (kingLoc & bishop_attacks(getPieces(opp, Piece::Bishop), getPieces())) {
+        int square = 0;
+        for (int i = 0; 1; i++) {
+            if (bishop_attacks(lookup[i], getPieces()) & kingLoc) {
+                if (getPieces(opp, Piece::Bishop) & lookup[i]) {
+                    square = i;
+                    break;
+                }
+            }
+        }
+        endSquares.push_back(square);
+        int count = 0;
+        U64 squares = bishop_attacks(kingLoc, lookup[square]) & Bmagic(square, 0);
+        while (squares > 0) { 
+            if ((squares & 1) == 1) {
+                endSquares.push_back(count);
+            }
+            squares >>= 1;
+            ++count;
+        }
+    } else if (kingLoc & rook_attacks(getPieces(opp, Piece::Rook), getPieces())) {
+        int square = 0;
+        for (int i = 0; 1; i++) {
+            if (rook_attacks(lookup[i], getPieces()) & kingLoc) {
+                if (getPieces(opp, Piece::Rook) & lookup[i]) {
+                    square = i;
+                    break;
+                }
+            }
+        }
+        endSquares.push_back(square);
+        int count = 0;
+        U64 squares = rook_attacks(kingLoc, lookup[square]) & Rmagic(square, 0);
+        while (squares > 0) { 
+            if ((squares & 1) == 1) {
+                endSquares.push_back(count);
+            }
+            squares >>= 1;
+            ++count;
+        }
+    } else if (kingLoc & queen_attacks(getPieces(opp, Piece::Queen), getPieces())) {
+        int square = 0;
+        for (int i = 0; 1; i++) {
+            if (queen_attacks(lookup[i], getPieces()) & kingLoc) {
+                if (getPieces(opp, Piece::Queen) & lookup[i]) {
+                    square = i;
+                    break;
+                }
+            }
+        }
+        endSquares.push_back(square);
+        int count = 0;
+        U64 squares;
+        if (sameDiagonal(square, kingSquare)) {
+            squares = bishop_attacks(kingLoc, lookup[square]) & Bmagic(square, 0);
+        } else {
+            squares = rook_attacks(kingLoc, lookup[square]) & Rmagic(square, 0);
+        }
+        while (squares > 0) { 
+            if ((squares & 1) == 1) {
+                endSquares.push_back(count);
+            }
+            squares >>= 1;
+            ++count;
+        }
+    }
+    int count = 0;
+    while (pieces > 0) {
+        if ((pieces & 1) == 1) {
+            U64 pBB = lookup[count]; 
+            Piece p = getPiece(count);
+            if (p == Piece::Pawn) {
+                U64 pawnAttacks = pawn_attacks(pBB, c);
+                U64 pawnMoves = single_pawn_moves(pBB, c) | double_pawn_moves(pBB, c);
+                int attCount = 0;
+                int moveCount = 0;
+                while (pawnAttacks > 0) {
+                    if (std::find(endSquares.begin(), endSquares.end(), attCount) != endSquares.end()) {
+                        if ((pawnAttacks & 1) == 1) {
+                            if (getPiece(attCount) != Piece::None) {
+                                if ((lookup[attCount] & Rank1) || (lookup[attCount] & Rank7)) {
+                                    for (int i = 8; i <= 11; i++) {
+                                        Move m(count, attCount, i);
+                                        if (legalMove(m)) {
+                                            moves.push_back(m);
+                                        }
+                                    }
+                                }
+                                Move m(count, attCount, 4);
+                                if (legalMove(m)) {
+                                    moves.push_back(m);
+                                }
+                            }
+                            Move m(count, attCount, 5);
+                            if (legalMove(m)) {
+                                moves.push_back(m);
+                            }
+                        }
+                    }
+                    attCount++;
+                    pawnAttacks >>= 1;
+                }
+                while (pawnMoves > 0) {
+                    if (std::find(endSquares.begin(), endSquares.end(), moveCount) != endSquares.end()) {
+                        if ((pawnMoves & 1) == 1) {
+                            if (getPiece(moveCount) == Piece::None) {
+                                for (int i = 12; i <= 15; i++) {
+                                    Move m(count, moveCount, i);
+                                    if (legalMove(m)) {
+                                        moves.push_back(m);
+                                    }
+                                }
+                                for (int i = 0; i <= 1; i++) {
+                                    Move m(count, moveCount, i);
+                                    if (legalMove(m)) {
+                                        moves.push_back(m);
+                                    }
+                                } 
+                            }
+                        }
+                    }
+                    moveCount++;
+                    pawnMoves >>= 1;
+                }
+            } else if (p == Piece::Knight) {
+                U64 knightMoves = knight_attacks(pBB);
+                int moveCount = 0;
+                while (knightMoves > 0) {
+                    if (std::find(endSquares.begin(), endSquares.end(), moveCount) != endSquares.end()) {
+                        if ((knightMoves & 1) == 1) {
+                            if (getPiece(moveCount) == Piece::None) {
+                                Move m(count, moveCount, 0);
+                                if (legalMove(m)) {
+                                    moves.push_back(m);
+                                }
+                            } else {
+                                Move m(count, moveCount, 4);
+                                if (legalMove(m)) {
+                                    moves.push_back(m);
+                                }
+                            }
+                        }
+                    }
+                    moveCount++;
+                    knightMoves >>= 1;
+                }
+            } else if (p == Piece::Bishop) {
+                U64 bishopMoves = bishop_attacks(pBB, getPieces());
+                int moveCount = 0;
+                while (bishopMoves > 0) {
+                    if (std::find(endSquares.begin(), endSquares.end(), moveCount) != endSquares.end()) {
+                        if ((bishopMoves & 1) == 1) {
+                            if (getPiece(moveCount) == Piece::None) {
+                                Move m(count, moveCount, 0);
+                                if (legalMove(m)) {
+                                    moves.push_back(m);
+                                }
+                            } else {
+                                Move m(count, moveCount, 4);
+                                if (legalMove(m)) {
+                                    moves.push_back(m);
+                                }
+                            }
+                        }
+                    }
+                    moveCount++;
+                    bishopMoves >>= 1;
+                }
+            } else if (p == Piece::Rook) {
+                U64 rookMoves = rook_attacks(pBB, getPieces());
+                int moveCount = 0;
+                while (rookMoves > 0) {
+                    if (std::find(endSquares.begin(), endSquares.end(), moveCount) != endSquares.end()) {
+                        if ((rookMoves & 1) == 1) {
+                            if (getPiece(moveCount) == Piece::None) {
+                                Move m(count, moveCount, 0);
+                                if (legalMove(m)) {
+                                    moves.push_back(m);
+                                }
+                            } else {
+                                Move m(count, moveCount, 4);
+                                if (legalMove(m)) {
+                                    moves.push_back(m);
+                                }
+                            }
+                        }
+                    }
+                    moveCount++;
+                    rookMoves >>= 1;
+                }
+            } else if (p == Piece::Queen) {
+                U64 queenMoves = queen_attacks(pBB, getPieces());
+                int moveCount = 0;
+                while (queenMoves > 0) {
+                    if (std::find(endSquares.begin(), endSquares.end(), moveCount) != endSquares.end()) {
+                        if ((queenMoves & 1) == 1) {
+                            if (getPiece(moveCount) == Piece::None) {
+                                Move m(count, moveCount, 0);
+                                if (legalMove(m)) {
+                                    moves.push_back(m);
+                                }
+                            } else {
+                                Move m(count, moveCount, 4);
+                                if (legalMove(m)) {
+                                    moves.push_back(m);
+                                }
+                            }
+                        }
+                    }
+                    moveCount++;
+                    queenMoves >>= 1;
+                }
+            } else if (p == Piece::King) {
+                U64 kingMoves = king_attacks(pBB);
+                int moveCount = 0;
+                while (kingMoves > 0) {
+                    if ((kingMoves & 1) == 1) {
+                        if (getPiece(moveCount) == Piece::None) {
+                            Move m(count, moveCount, 0);
+                            if (legalMove(m)) {
+                                moves.push_back(m);
+                            }
+                        } else {
+                            Move m(count, moveCount, 4);
+                            if (legalMove(m)) {
+                                moves.push_back(m);
+                            }
+                        }
+                    }
+                    moveCount++;
+                    kingMoves >>= 1;
+                }
+            }
+        }
+
+        count++;
+        pieces >>= 1;
+    }
+    return moves;
+}
+
+
+// Returns a vector of the possible moves if the player is in double check
+std::vector<Move> Board::getDoubleCheckMoves() const {
+    Color c;
+    Move m(0, 0, 0);
+    std::vector<Move> moves;
+    if (whiteMove) {
+        c = Color::White;
+    } else {
+        c = Color::Black;
+    }
+    U64 pieces = getPieces(c, Piece::King); 
+    int count = 0;
+    while (pieces > 0) {
+        if ((pieces & 1) == 1) {
+            U64 pBB = lookup[count]; 
+            U64 kingMoves = king_attacks(pBB);
+            int moveCount = 0;
+            while (kingMoves > 0) {
+                if ((kingMoves & 1) == 1) {
+                    if (getPiece(moveCount) == Piece::None) {
+                        Move m(count, moveCount, 0);
+                        if (legalMove(m)) {
+                            moves.push_back(m);
+                        }
+                    } else {
+                        m = Move(count, moveCount, 4);
+                        if (legalMove(m)) {
+                            moves.push_back(m);
+                        }
+                    }
+                }
+                moveCount++;
+                kingMoves >>= 1;
+            }
+        }
+
+        count++;
+        pieces >>= 1;
+    }
+    return moves;
+}
+
+int Board::boardScore() {
     int eval = 0;
     int pieceValues[] = {100, 320, 330, 500, 900, 20000};
     for (int p = 0; p < 6; p++) {
@@ -785,6 +1190,8 @@ int Board::boardScore() const {
             }
         }
     }
+    eval -= doublePawns(Color::White) + isoPawns(Color::White);
+    eval += doublePawns(Color::Black) + isoPawns(Color::Black);
     if (!whiteMove) {
         eval *= -1;
     }
@@ -941,4 +1348,33 @@ void Board::flushTransTable() {
         transTableAlways[i].ancient = true;
         transTableDepth[i].ancient = true;
     }
+}
+
+int Board::checkCount() const {
+    int count = 0;
+    Color c, opp;    
+    if (whiteMove) {
+        c = Color::White;
+        opp = Color::Black;
+    } else {
+        c = Color::Black;
+        opp = Color::White;
+    }
+    U64 kingLoc = getPieces(c, Piece::King);
+    if (kingLoc & pawn_attacks(getPieces(opp, Piece::Pawn), opp)) {
+        count++;
+    } 
+    if (kingLoc & knight_attacks(getPieces(opp, Piece::Knight))) {
+        count++;
+    } 
+    if (kingLoc & bishop_attacks(getPieces(opp, Piece::Bishop), getPieces())) {
+        count++;
+    } 
+    if (kingLoc & rook_attacks(getPieces(opp, Piece::Rook), getPieces())) {
+        count++;
+    } 
+    if (kingLoc & queen_attacks(getPieces(opp, Piece::Queen), getPieces())) {
+        count++;
+    }
+    return count;
 }
