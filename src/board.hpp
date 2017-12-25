@@ -6,6 +6,7 @@
 #include <array>
 #include <random>
 #include <cmath>
+#include <chrono>
 #include <algorithm>
 #include <bitset>
 #include "BB.hpp"
@@ -60,7 +61,6 @@ class Board {
     HashEntry transTableDepth[10000];
     HashEntry transTableAlways[10000];
     std::vector<Move> moveList;
-    int pieceValues[6] = {100, 320, 330, 500, 900, 20000};
     short pieceTable[6][64] = {
 		// pawn
         {
@@ -138,9 +138,11 @@ class Board {
 
     int trailZeros(U64 x) const;
 
+    void colorFlip();
+
     int popcnt(U64 x) const;
     
-    std::vector<int> getIndices(U64 x);
+    std::vector<int> getIndices(U64 x) const;
 
     bool getMove() const;
 
@@ -167,13 +169,17 @@ class Board {
     // Checks to see if there are any pieces in between the two squares. 
     bool inBetween(unsigned int square1, unsigned int square2) const;
 
-    int isoPawns(Color c);
+    int isoPawns(Color c) const;
 
-    int doublePawns(Color c);
+    int materialCount(Color c) const;
 
-    int opposed(int pawn, Color c);
+    int doublePawns(Color c) const;
 
-    int blockedPawns(Color c);
+    int opposed(int pawn, Color c) const;
+
+    int blockedPawns(Color c) const;
+
+    int mobility(Color c) const;
 
     bool legalMove(Move m) const;
 
@@ -205,7 +211,7 @@ class Board {
 
     void insertTransTable(int index, HashEntry h);
 
-    U64 updatedHashVal(Move m) const; 
+    U64 updatedHashVal(Move &m) const; 
 
     void flushTransTable();
 

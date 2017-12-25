@@ -9,6 +9,7 @@
 #include <time.h>
 #include "board.hpp"
 #include "search.hpp"
+#include <chrono>
 
 using namespace Types;
 
@@ -94,15 +95,33 @@ void gameTest(Board BOARD) {
             if (mov == "u") {
                 BOARD.unmakeMove();
             } else {
+                auto begin = std::chrono::high_resolution_clock::now();
                 Move M(stringToSquare(start), stringToSquare(end), flags);
                 std::cout << BOARD.legalMove(M) << std::endl;
                 goodMove = BOARD.makeMove(M);
+                auto end = std::chrono::high_resolution_clock::now();
+                std::cout << std::chrono::duration_cast<std::chrono::nanoseconds>(end-begin).count() << "ns" << std::endl;
                 if (!goodMove) {
                     std::cout << "Illegal move!" << std::endl;
                 }
             }
         }
     }
+}
+
+U64 perft(Board& b, int depth) {
+    U64 nodes = 0;
+    if (depth == 0) {
+        return 1;
+    }
+    auto moveList = b.getLegalMoves();
+    for (Move m : moveList) {
+        if (b.makeMove(m)) {
+            nodes += perft(b, depth - 1);
+            b.unmakeMove();
+        }
+    }
+    return nodes;
 }
 
 int main() {

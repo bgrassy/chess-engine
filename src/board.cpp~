@@ -82,10 +82,6 @@ std::vector<int> Board::getIndices(U64 x) const {
     return indices;
 }
 
-void Board::colorFlip() {
-    whiteMove = !whiteMove;
-}
-
 U64 Board::getHashVal() const {
     return hashVal;
 } 
@@ -169,21 +165,7 @@ bool Board::inBetween(unsigned int square1, unsigned int square2) const {
     return false;
 } 
 
-int Board::materialCount(Color c) const {
-    int eval = 0;
-    int pieceValues[] = {100, 320, 330, 500, 900, 20000};
-    for (int p = 0; p < 6; p++) {
-        U64 pieces = getPieces((Color) c, (Piece) p);
-        for (int count : getIndices(pieces)) {
-            eval += pieceValues[p];
-            eval += pieceTable[p][count];
-            eval += pieceTable[p][(7 - count / 8) * 8 + count % 8];
-        }
-    }
-    return eval;
-}
-
-int Board::doublePawns(Color c) const {
+int Board::doublePawns(Color c) {
     int count = 0;
     U64 pawns = getPieces(c, Piece::Pawn);
     for (int i = 0; i < 8; i++) {
@@ -193,22 +175,17 @@ int Board::doublePawns(Color c) const {
             count += pawnCount;
         }
     }
-    return -count * 25;
+    return count;
 }
 
-int Board::isoPawns(Color c) const {
+int Board::isoPawns(Color c) {
     int count = 0;
     U64 pawns = getPieces(c, Piece::Pawn);
-    int arr[8] = {0};
+    int arr[8];
     for (int i = 0; i < 8; i++) {
         U64 filePawns = i * 72340172838076673; 
-        for (int square : getIndices(filePawns & pawns)) {
-            if (opposed(square, c)) {
-                arr[i] += 7;
-            } else {
-                arr[i] += 17;
-            }
-        }
+        int pawnCount = ((std::bitset<64>)(filePawns & pawns)).count();
+        arr[i] = pawnCount;
     }
 
     for (int i = 0; i < 8; i++) {
@@ -229,7 +206,7 @@ int Board::isoPawns(Color c) const {
     return count;
 }
 
-int Board::opposed(int pawn, Color c) const {
+int Board::opposed(int pawn, Color c) {
     if (c == Color::Black) {
         for (int square = pawn; square >= 7; square-=8) {
             if (getPiece(square) == Piece::Pawn) {
@@ -250,43 +227,8 @@ int Board::opposed(int pawn, Color c) const {
     return 0;
 }
 
-int Board::blockedPawns(Color c) const {
-    int count = 0;
-    U64 pawns = getPieces(c, Piece::Pawn);
-    for (int square : getIndices(pawns)) {
-        if (single_pawn_moves(lookup[square], c) & ~getPieces()) {
-            break; 
-        } else if (double_pawn_moves(lookup[square], c) & ~getPieces()) {
-            break; 
-        } else if (pawn_attacks(lookup[square], c) & getPieces() & ~getPieces(c)) {
-            break; 
-        }
-        count++;
-    }
-    return -15 * count;
-}
-
-int Board::mobility(Color c) const {
-    int eval = 0;
-    Color opp = (Color) (((int) c + 1) % 2);
-    for (int square : getIndices(getPieces(c))) {
-        if ((getPiece(square) == Piece::Pawn)) {
-            eval += popcnt(pawn_attacks(lookup[square], c) & getPieces(opp)); 
-            eval += popcnt(single_pawn_moves(lookup[square], c) & ~getPieces(c)); 
-            eval += popcnt(double_pawn_moves(lookup[square], c) & ~getPieces(c)); 
-        } else if ((getPiece(square) == Piece::Knight)) {
-            eval += popcnt(knight_attacks(lookup[square]) & ~getPieces(c)); 
-        } else if ((getPiece(square) == Piece::Bishop)) {
-            eval += popcnt(bishop_attacks(lookup[square], getPieces(c)) & ~getPieces(c));
-        } else if ((getPiece(square) == Piece::Rook)) {
-            eval += popcnt(rook_attacks(lookup[square], getPieces(c)) & ~getPieces(c)); 
-        } else if ((getPiece(square) == Piece::Queen)) {
-            eval += popcnt(queen_attacks(lookup[square], getPieces()) & ~getPieces(c)); 
-        } else if ((getPiece(square) == Piece::King)) {
-            eval += popcnt(king_attacks(lookup[square]) & ~getPieces(c)); 
-        }
-    }
-    return eval;
+int Board::blockedPawns(Color c) {
+    return 0;
 }
 
 // Takes a move, and tests if it is a "pseudo-legal" move.
@@ -317,16 +259,8 @@ bool Board::legalMove(class Move m) const {
         return false;
     }
 
-    if (prom) {
-        if (p != Piece::Pawn) {
-            return false;
-        }
-        if (c == Color::White && !(startBB & Rank7)) {
-            return false; 
-        }
-        if (c == Color::Black && !(startBB & Rank2)) {
-            return false;
-        }
+    if (prom && (!(startBB & Rank7) || (p != Piece::Pawn))) {
+        return false;
     }
 
     // checks if the end piece is the same color
@@ -363,8 +297,8 @@ bool Board::legalMove(class Move m) const {
                 return false;
             }
             if (end == 58) {
-                if (getPiece(57) == Piece::None) { 
-                    return (castle & 8) && ((type & 1) == 1); // queenside      
+                if (getPiece(56) == Piece::None) {
+                    return (castle & 8) && ((type & 1) == 1);            
                 }
                 return false;
             } else if (end == 62) {
@@ -470,7 +404,6 @@ bool Board::inCheck() const {
 
 // Takes a move, and executes the move on the board if it is legal.
 bool Board::makeMove(Move& m) {
-    if (!legalMove(m)) { return false;}
     // Get all the information from the move.
     int start = m.getStart();
     int end = m.getEnd();
@@ -492,6 +425,8 @@ bool Board::makeMove(Move& m) {
     // Determines the square of the king
     U64 kingLoc = getPieces(startC, Piece::King);
     int kingSquare = reverseLookup(kingLoc);
+
+    if (!legalMove(m)) { return false;}
 
     U64 tmpHashVal = updatedHashVal(m); 
     pieceBB[(int)startP + 2] ^= startEndBB; 
@@ -536,10 +471,10 @@ bool Board::makeMove(Move& m) {
                 if (!attacked(kingSquare + 1, opp) && !attacked(kingSquare + 2, opp)) { // not castle through check
                     if (startC == Color::White) {
                         rookBB = lookup[5] ^ lookup[7];
-                        castle &= 0b1100;
+                        castle ^= 0b0001;
                     } else { 
                         rookBB = lookup[61] ^ lookup[63];
-                        castle &= 0b0011;
+                        castle ^= 0b0100;
                     }
                     pieceBB[5] ^= rookBB;
                     pieceBB[(int) startC] ^= rookBB;
@@ -552,10 +487,10 @@ bool Board::makeMove(Move& m) {
                 if (!attacked(kingSquare - 1, opp) && !attacked(kingSquare - 2, opp)) { // not castle through check
                     if (startC == Color::White) {
                         rookBB = lookup[0] ^ lookup[3];
-                        castle &= 0b1100;
+                        castle ^= 0b0010;
                     } else {
-                        rookBB = lookup[56] ^ lookup[59];
-                        castle &= 0b0011;
+                        rookBB = lookup[54] ^ lookup[57];
+                        castle ^= 0b1000;
                     }
                     pieceBB[5] ^= rookBB;
                     pieceBB[(int) startC] ^= rookBB;
@@ -574,33 +509,21 @@ bool Board::makeMove(Move& m) {
     
     if (startP == Piece::Rook) {
         if (start == 0) {
-            castle &= 0b1101;
+            castle ^= 0b0010;
         } else if (start == 7) {
-            castle &= 0b1110;
-        } else if (start == 56) {
-            castle &= 0b0111;
+            castle ^= 0b0001;
+        } else if (start == 54) {
+            castle ^= 0b1000;
         } else if (start == 63) {
-            castle &= 0b1011;
-        }
-    }
-
-    if (endP == Piece::Rook) {
-        if (end == 0) {
-            castle &= 0b1101;
-        } else if (end == 7) {
-            castle &= 0b1110;
-        } else if (end == 56) {
-            castle &= 0b0111;
-        } else if (end == 63) {
-            castle &= 0b1011;
+            castle ^= 0b0100;
         }
     }
 
     if (startP == Piece::King) {
         if (startC == Color::White) {
-            castle &= 0b1100;
+            castle ^= 0b0011;
         } else {
-            castle &= 0b0011;
+            castle ^= 0b1100;
         }
     }
     kingLoc = getPieces(startC, Piece::King);
@@ -697,7 +620,7 @@ void Board::unmakeMove() {
                 if (startC == Color::White) {
                     rookBB = lookup[0] ^ lookup[3];
                 } else {
-                    rookBB = lookup[56] ^ lookup[59];
+                    rookBB = lookup[54] ^ lookup[57];
                 }
                 pieceBB[5] ^= rookBB;
                 pieceBB[(int) startC] ^= rookBB;
@@ -1130,11 +1053,28 @@ std::vector<Move> Board::getDoubleCheckMoves() const {
 
 int Board::boardScore() {
     int eval = 0;
-    eval += materialCount(Color::White) - materialCount(Color::Black);
-    // eval += doublePawns(Color::White) - doublePawns(Color::Black);
-    // eval += isoPawns(Color::White) - isoPawns(Color::Black);
-    eval += 10 * (mobility(Color::White) - mobility(Color::Black));
-    // eval += blockedPawns(Color::White) - blockedPawns(Color::Black);*/
+    int pieceValues[] = {100, 320, 330, 500, 900, 20000};
+    for (int p = 0; p < 6; p++) {
+        for (int c = 0; c < 2; c++) {
+            U64 pieces = getPieces((Color) c, (Piece) p);
+            int count = 0;
+            while (pieces > 0) {
+                if ((pieces & 1) == 1) {
+                    eval += pieceValues[p] * (1 - 2 * c);
+                    if (c == 0) {
+                        eval += pieceTable[p][count] * (1 - 2 * c);
+                    } else {
+                        eval += pieceTable[p][(7 - count / 8) * 8 + count % 8] * (1 - 2 * c);
+
+                    }
+                }
+                pieces >>= 1;
+                count++;
+            }
+        }
+    }
+    eval -= doublePawns(Color::White) + isoPawns(Color::White);
+    eval += doublePawns(Color::Black) + isoPawns(Color::Black);
     if (!whiteMove) {
         eval *= -1;
     }
@@ -1257,30 +1197,30 @@ U64 Board::updatedHashVal(Move &m) const {
                 tmpHashVal ^= hashTable[0][3];
                 tmpHashVal ^= hashTable[3][3];
             } else {
-                tmpHashVal ^= hashTable[56][9];
-                tmpHashVal ^= hashTable[59][9];
+                tmpHashVal ^= hashTable[54][9];
+                tmpHashVal ^= hashTable[57][9];
             }
         }
     }
     if (startP == Piece::Rook) {
         if (start == 0) {
-            tmpHashVal &= ~specialHashTable[2];
+            tmpHashVal ^= specialHashTable[2];
         } else if (start == 7) {
-            tmpHashVal &= ~specialHashTable[1];
-        } else if (start == 56) {
-            tmpHashVal &= ~specialHashTable[4];
+            tmpHashVal ^= specialHashTable[1];
+        } else if (start == 54) {
+            tmpHashVal ^= specialHashTable[4];
         } else if (start == 63) {
-            tmpHashVal &= ~specialHashTable[3];
+            tmpHashVal ^= specialHashTable[3];
         }
     }
 
     if (startP == Piece::King) {
         if (startC == Color::White) {
-            tmpHashVal &= specialHashTable[1];
-            tmpHashVal &= ~specialHashTable[2];
+            tmpHashVal ^= specialHashTable[1];
+            tmpHashVal ^= specialHashTable[2];
         } else {
-            tmpHashVal &= ~specialHashTable[3];
-            tmpHashVal &= ~specialHashTable[4];
+            tmpHashVal ^= specialHashTable[3];
+            tmpHashVal ^= specialHashTable[4];
         }
     }
     return tmpHashVal;
