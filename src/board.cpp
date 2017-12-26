@@ -1133,8 +1133,8 @@ int Board::boardScore() {
     eval += materialCount(Color::White) - materialCount(Color::Black);
     // eval += doublePawns(Color::White) - doublePawns(Color::Black);
     // eval += isoPawns(Color::White) - isoPawns(Color::Black);
-    eval += 10 * (mobility(Color::White) - mobility(Color::Black));
     // eval += blockedPawns(Color::White) - blockedPawns(Color::Black);*/
+    eval += 10 * (mobility(Color::White) - mobility(Color::Black));
     if (!whiteMove) {
         eval *= -1;
     }
