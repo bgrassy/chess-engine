@@ -4,8 +4,17 @@
 #include <utility>
 #include "board.hpp"
 
+struct MoveData {
+    Move move;
+    int score;
+    MoveData(int score, Move move) {
+        this->move = move;
+        this->score = score;
+    }
+};
+
 const int MAX_VALUE = 50000;
 const int MATE_VALUE = 25000;
-std::pair<int, Move> alphabeta(Board &b, int depth, int alpha, int beta);
+MoveData alphabeta(Board &b, int depth, int alpha, int beta);
 int quiesce(Board &b, int alpha, int beta);
 #endif /*SEARCH_HPP*/
