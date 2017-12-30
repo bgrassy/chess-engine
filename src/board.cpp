@@ -189,47 +189,47 @@ Piece Board::getLastCapture() const {
 }
 
 // Takes two integers corresponding to squares, and returns whether they are in the same rank.
-bool Board::sameRank(unsigned int square1, unsigned int square2) const{
+bool Board::sameRank(int square1, int square2) const{
     return (square1 >> 3) == (square2 >> 3);
 }
 
 // Takes two integers corresponding to squares, and returns whether they are in the same file.
-bool Board::sameFile(unsigned int square1, unsigned int square2) const {
+bool Board::sameFile(int square1, int square2) const {
     return (square1 & 7) == (square2 & 7);
 }
 
 // Takes two integers corresponding to squares, and returns whether they are in the same diagonal.
-bool Board::sameDiagonal(unsigned int square1, unsigned int square2) const {
+bool Board::sameDiagonal(int square1, int square2) const {
     return bishop_attacks(lookup[square1], 0) & bishop_attacks(lookup[square2], 0);
 }
 // Checks to see if there are any pieces between two given squares. 
-bool Board::inBetween(unsigned int square1, unsigned int square2) const {
+bool Board::inBetween(int square1, int square2) const {
     if (square1 > square2) {
         int tmp = square1;
         square1 = square2;
         square2 = tmp;
     }
     if (sameRank(square1, square2)) { // in the same row
-        for (unsigned int i = square1 + 1; i < square2; ++i) {
+        for (int i = square1 + 1; i < square2; ++i) {
             if (lookup[i] & getPieces()) {
                 return true;
             }
         }
     } else if (sameFile(square1, square2)) { // in the same column
-        for (unsigned int i = square1 + 8; i < square2; i+=8) {
+        for (int i = square1 + 8; i < square2; i+=8) {
             if (lookup[i] & getPieces()) {
                 return true;
             }
         }
     } else if (sameDiagonal(square1, square2)) {
         if ((square2 - square1) % 9 == 0) {
-            for (unsigned int i = square1 + 9; i < square2; i+=9) {
+            for (int i = square1 + 9; i < square2; i+=9) {
                 if (lookup[i] & getPieces()) {
                     return true;
                 }
             }
         } else if ((square2 - square1) % 7 == 0) {
-            for (unsigned int i = square1 + 7; i < square2; i+=7) {
+            for (int i = square1 + 7; i < square2; i+=7) {
                 if (lookup[i] & getPieces()) {
                     return true;
                 }
@@ -484,7 +484,7 @@ bool Board::legalMove(class Move m) const {
 }
 
 // Takes a square and color and determines whether that player is attacking that square. 
-bool Board::attacked(unsigned int square, Color c) const {
+bool Board::attacked(int square, Color c) const {
     U64 sq = lookup[square]; 
     if (sq & (pawn_attacks(getPieces(c, Piece::Pawn), c) | 
                 knight_attacks(getPieces(c, Piece::Knight)))) {
@@ -499,11 +499,14 @@ bool Board::attacked(unsigned int square, Color c) const {
     if (sq & queen_attacks(getPieces(c, Piece::Queen), getPieces())) {
         return true;
     }
+    if (sq & king_attacks(getPieces(c, Piece::King))) {
+        return true;
+    }
     return false;
 }
 
 // Takes a square, and returns the color of the piece on the square
-Color Board::getColor(unsigned int square) const {
+Color Board::getColor(int square) const {
     U64 b = lookup[square];
     if (b & getPieces(Color::White)) {
         return Color::White;
@@ -514,7 +517,7 @@ Color Board::getColor(unsigned int square) const {
 }
 
 // Takes a square, and returns the type of the piece on the square.
-Piece Board::getPiece(unsigned int square) const {
+Piece Board::getPiece(int square) const {
     U64 b = lookup[square];
     for (int i = 0; i < 6; i++) {
         if (b & getPieces((Piece) i)) {

@@ -95,14 +95,14 @@ class Board {
 
     Piece getLastCapture() const;
 
-    bool sameRank(unsigned int square1, unsigned int square2) const;
+    bool sameRank(int square1, int square2) const;
 
-    bool sameFile(unsigned int square1, unsigned int square2) const;
+    bool sameFile(int square1, int square2) const;
 
-    bool sameDiagonal(unsigned int square1, unsigned int square2) const;
+    bool sameDiagonal(int square1, int square2) const;
 
     // Checks to see if there are any pieces in between the two squares. 
-    bool inBetween(unsigned int square1, unsigned int square2) const;
+    bool inBetween(int square1, int square2) const;
 
     int isoPawns(Color c) const;
 
@@ -118,11 +118,11 @@ class Board {
 
     bool legalMove(Move m) const;
 
-    bool attacked(unsigned int square, Color c) const;
+    bool attacked(int square, Color c) const;
 
-    Color getColor(unsigned int square) const;
+    Color getColor(int square) const;
 
-    Piece getPiece(unsigned int square) const;
+    Piece getPiece(int square) const;
 
     bool inCheck() const;
 

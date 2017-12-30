@@ -13,7 +13,7 @@
 
 using namespace Types;
 
-int MAX_DEPTH = 6;
+int MAX_DEPTH = 4;
 
 int stringToSquare(std::string s) {
     return 8 * (std::stoi(s.substr(1,1)) - 1) + ((int)s.at(0) - 97);
