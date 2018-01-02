@@ -1,0 +1,497 @@
+Flat profile:
+
+Each sample counts as 0.01 seconds.
+ no time accumulated
+
+  %   cumulative   self              self     total           
+ time   seconds   seconds    calls  Ts/call  Ts/call  name    
+  0.00      0.00     0.00 60237052     0.00     0.00  Move::getFlags() const
+  0.00      0.00     0.00 58480904     0.00     0.00  Move::getEnd() const
+  0.00      0.00     0.00 57677408     0.00     0.00  Move::getCapture() const
+  0.00      0.00     0.00 57677408     0.00     0.00  Move::getProm() const
+  0.00      0.00     0.00 57677408     0.00     0.00  Move::getType() const
+  0.00      0.00     0.00 57677408     0.00     0.00  Move::getStart() const
+  0.00      0.00     0.00 47728056     0.00     0.00  Move::Move(unsigned int, unsigned int, unsigned int)
+  0.00      0.00     0.00 41615072     0.00     0.00  Board::makeMove(Move&)
+  0.00      0.00     0.00 21615676     0.00     0.00  void std::vector<int, std::allocator<int> >::_M_emplace_back_aux<int const&>(int const&)
+  0.00      0.00     0.00 20840784     0.00     0.00  bishop_attacks(unsigned long long, unsigned long long)
+  0.00      0.00     0.00 13901449     0.00     0.00  pawn_attacks(unsigned long long, Types::Color)
+  0.00      0.00     0.00 12378764     0.00     0.00  knight_attacks(unsigned long long)
+  0.00      0.00     0.00 11570729     0.00     0.00  rook_attacks(unsigned long long, unsigned long long)
+  0.00      0.00     0.00 11367850     0.00     0.00  queen_attacks(unsigned long long, unsigned long long)
+  0.00      0.00     0.00 10693847     0.00     0.00  king_attacks(unsigned long long)
+  0.00      0.00     0.00 10654620     0.00     0.00  Board::inBetween(int, int) const
+  0.00      0.00     0.00 10155276     0.00     0.00  Board::attacked(int, Types::Color) const
+  0.00      0.00     0.00  6147034     0.00     0.00  double_pawn_moves(unsigned long long, Types::Color)
+  0.00      0.00     0.00  6147034     0.00     0.00  single_pawn_moves(unsigned long long, Types::Color)
+  0.00      0.00     0.00  5077638     0.00     0.00  Board::unmakeMove()
+  0.00      0.00     0.00  5077638     0.00     0.00  Board::updatedHashVal(Move&) const
+  0.00      0.00     0.00  5077638     0.00     0.00  Board::mobility(Types::Color) const
+  0.00      0.00     0.00  1857656     0.00     0.00  void std::vector<Move, std::allocator<Move> >::_M_emplace_back_aux<Move>(Move&&)
+  0.00      0.00     0.00   829422     0.00     0.00  Board::legalMove(Move) const
+  0.00      0.00     0.00   206604     0.00     0.00  Board::checkCount() const
+  0.00      0.00     0.00   206604     0.00     0.00  Board::getLegalMoves() const
+  0.00      0.00     0.00   206123     0.00     0.00  Board::getNormalMoves() const
+  0.00      0.00     0.00     5248     0.00     0.00  initmagicmoves_Bmoves(int, unsigned long long)
+  0.00      0.00     0.00      882     0.00     0.00  std::mersenne_twister_engine<unsigned long, 64ul, 312ul, 156ul, 31ul, 13043109905998158313ul, 29ul, 6148914691236517205ul, 17ul, 8202884508482404352ul, 37ul, 18444473444759240704ul, 43ul, 6364136223846793005ul>::operator()()
+  0.00      0.00     0.00      481     0.00     0.00  Board::getCheckMoves() const
+  0.00      0.00     0.00      471     0.00     0.00  Board::getIndices(unsigned long long) const
+  0.00      0.00     0.00      471     0.00     0.00  std::vector<int, std::allocator<int> >::push_back(int const&)
+  0.00      0.00     0.00      471     0.00     0.00  _init
+  0.00      0.00     0.00      300     0.00     0.00  Board::sameDiagonal(int, int) const
+  0.00      0.00     0.00        4     0.00     0.00  void std::vector<Types::Piece, std::allocator<Types::Piece> >::_M_emplace_back_aux<Types::Piece const&>(Types::Piece const&)
+  0.00      0.00     0.00        4     0.00     0.00  void std::vector<unsigned long long, std::allocator<unsigned long long> >::_M_emplace_back_aux<unsigned long long const&>(unsigned long long const&)
+  0.00      0.00     0.00        1     0.00     0.00  _GLOBAL__sub_I_MAX_DEPTH
+  0.00      0.00     0.00        1     0.00     0.00  _GLOBAL__sub_I__Z9alphabetaR5Boardiii
+  0.00      0.00     0.00        1     0.00     0.00  _GLOBAL__sub_I__ZN4MoveC2Ev
+  0.00      0.00     0.00        1     0.00     0.00  _GLOBAL__sub_I_pieceTable
+  0.00      0.00     0.00        1     0.00     0.00  Board::initHash()
+
+ %         the percentage of the total running time of the
+time       program used by this function.
+
+cumulative a running sum of the number of seconds accounted
+ seconds   for by this function and those listed above it.
+
+ self      the number of seconds accounted for by this
+seconds    function alone.  This is the major sort for this
+           listing.
+
+calls      the number of times this function was invoked, if
+           this function is profiled, else blank.
+
+ self      the average number of milliseconds spent in this
+ms/call    function per call, if this function is profiled,
+	   else blank.
+
+ total     the average number of milliseconds spent in this
+ms/call    function and its descendents per call, if this
+	   function is profiled, else blank.
+
+name       the name of the function.  This is the minor sort
+           for this listing. The index shows the location of
+	   the function in the gprof listing. If the index is
+	   in parenthesis it shows where it would appear in
+	   the gprof listing if it were to be printed.
+
+Copyright (C) 2012-2015 Free Software Foundation, Inc.
+
+Copying and distribution of this file, with or without modification,
+are permitted in any medium without royalty provided the copyright
+notice and this notice are preserved.
+
+		     Call graph (explanation follows)
+
+
+granularity: each sample hit covers 2 byte(s) no time propagated
+
+index % time    self  children    called     name
+                0.00    0.00  829422/60237052     Board::legalMove(Move) const [31]
+                0.00    0.00 5077638/60237052     Board::unmakeMove() [27]
+                0.00    0.00 5077638/60237052     Board::updatedHashVal(Move&) const [28]
+                0.00    0.00 5077638/60237052     Board::mobility(Types::Color) const [29]
+                0.00    0.00 44174716/60237052     Board::makeMove(Move&) [15]
+[8]      0.0    0.00    0.00 60237052         Move::getFlags() const [8]
+-----------------------------------------------
+                0.00    0.00  829422/58480904     Board::legalMove(Move) const [31]
+                0.00    0.00 5077638/58480904     Board::unmakeMove() [27]
+                0.00    0.00 5077638/58480904     Board::updatedHashVal(Move&) const [28]
+                0.00    0.00 5077638/58480904     Board::mobility(Types::Color) const [29]
+                0.00    0.00 42418568/58480904     Board::makeMove(Move&) [15]
+[9]      0.0    0.00    0.00 58480904         Move::getEnd() const [9]
+-----------------------------------------------
+                0.00    0.00  829422/57677408     Board::legalMove(Move) const [31]
+                0.00    0.00 5077638/57677408     Board::unmakeMove() [27]
+                0.00    0.00 5077638/57677408     Board::updatedHashVal(Move&) const [28]
+                0.00    0.00 5077638/57677408     Board::mobility(Types::Color) const [29]
+                0.00    0.00 41615072/57677408     Board::makeMove(Move&) [15]
+[10]     0.0    0.00    0.00 57677408         Move::getCapture() const [10]
+-----------------------------------------------
+                0.00    0.00  829422/57677408     Board::legalMove(Move) const [31]
+                0.00    0.00 5077638/57677408     Board::unmakeMove() [27]
+                0.00    0.00 5077638/57677408     Board::updatedHashVal(Move&) const [28]
+                0.00    0.00 5077638/57677408     Board::mobility(Types::Color) const [29]
+                0.00    0.00 41615072/57677408     Board::makeMove(Move&) [15]
+[11]     0.0    0.00    0.00 57677408         Move::getProm() const [11]
+-----------------------------------------------
+                0.00    0.00  829422/57677408     Board::legalMove(Move) const [31]
+                0.00    0.00 5077638/57677408     Board::unmakeMove() [27]
+                0.00    0.00 5077638/57677408     Board::updatedHashVal(Move&) const [28]
+                0.00    0.00 5077638/57677408     Board::mobility(Types::Color) const [29]
+                0.00    0.00 41615072/57677408     Board::makeMove(Move&) [15]
+[12]     0.0    0.00    0.00 57677408         Move::getType() const [12]
+-----------------------------------------------
+                0.00    0.00  829422/57677408     Board::legalMove(Move) const [31]
+                0.00    0.00 5077638/57677408     Board::unmakeMove() [27]
+                0.00    0.00 5077638/57677408     Board::updatedHashVal(Move&) const [28]
+                0.00    0.00 5077638/57677408     Board::mobility(Types::Color) const [29]
+                0.00    0.00 41615072/57677408     Board::makeMove(Move&) [15]
+[13]     0.0    0.00    0.00 57677408         Move::getStart() const [13]
+-----------------------------------------------
+                0.00    0.00       1/47728056     Board::Board() [67]
+                0.00    0.00   11887/47728056     Board::getCheckMoves() const [37]
+                0.00    0.00 5077638/47728056     Board::mobility(Types::Color) const [29]
+                0.00    0.00 42638530/47728056     Board::getNormalMoves() const [34]
+[14]     0.0    0.00    0.00 47728056         Move::Move(unsigned int, unsigned int, unsigned int) [14]
+-----------------------------------------------
+                0.00    0.00 41615072/41615072     perft(Board&, int) [56]
+[15]     0.0    0.00    0.00 41615072         Board::makeMove(Move&) [15]
+                0.00    0.00 44174716/60237052     Move::getFlags() const [8]
+                0.00    0.00 42418568/58480904     Move::getEnd() const [9]
+                0.00    0.00 41615072/57677408     Move::getStart() const [13]
+                0.00    0.00 41615072/57677408     Move::getProm() const [11]
+                0.00    0.00 41615072/57677408     Move::getCapture() const [10]
+                0.00    0.00 41615072/57677408     Move::getType() const [12]
+                0.00    0.00 10614094/10654620     Board::inBetween(int, int) const [23]
+                0.00    0.00 5077638/5077638     Board::mobility(Types::Color) const [29]
+                0.00    0.00 2843266/6147034     double_pawn_moves(unsigned long long, Types::Color) [25]
+                0.00    0.00 2843266/6147034     single_pawn_moves(unsigned long long, Types::Color) [26]
+                0.00    0.00  983324/12378764     knight_attacks(unsigned long long) [19]
+                0.00    0.00  531024/20840784     bishop_attacks(unsigned long long, unsigned long long) [17]
+                0.00    0.00  379601/11367850     queen_attacks(unsigned long long, unsigned long long) [21]
+                0.00    0.00  179055/11570729     rook_attacks(unsigned long long, unsigned long long) [20]
+                0.00    0.00  132652/10693847     king_attacks(unsigned long long) [22]
+                0.00    0.00   28716/13901449     pawn_attacks(unsigned long long, Types::Color) [18]
+-----------------------------------------------
+                0.00    0.00       2/21615676     Board::Board() [67]
+                0.00    0.00       6/21615676     Board::mobility(Types::Color) const [29]
+                0.00    0.00    1107/21615676     Board::getIndices(unsigned long long) const [38]
+                0.00    0.00   50791/21615676     Board::getCheckMoves() const [37]
+                0.00    0.00 21563770/21615676     Board::getNormalMoves() const [34]
+[16]     0.0    0.00    0.00 21615676         void std::vector<int, std::allocator<int> >::_M_emplace_back_aux<int const&>(int const&) [16]
+-----------------------------------------------
+                0.00    0.00     600/20840784     Board::sameDiagonal(int, int) const [41]
+                0.00    0.00    7474/20840784     Board::getCheckMoves() const [37]
+                0.00    0.00  206604/20840784     Board::checkCount() const [32]
+                0.00    0.00  206604/20840784     Board::getLegalMoves() const [33]
+                0.00    0.00  531024/20840784     Board::makeMove(Move&) [15]
+                0.00    0.00  824316/20840784     Board::getNormalMoves() const [34]
+                0.00    0.00 8909404/20840784     Board::inBetween(int, int) const [23]
+                0.00    0.00 10154758/20840784     Board::attacked(int, Types::Color) const [24]
+[17]     0.0    0.00    0.00 20840784         bishop_attacks(unsigned long long, unsigned long long) [17]
+-----------------------------------------------
+                0.00    0.00    8158/13901449     Board::getCheckMoves() const [37]
+                0.00    0.00   28716/13901449     Board::makeMove(Move&) [15]
+                0.00    0.00  206604/13901449     Board::checkCount() const [32]
+                0.00    0.00  206604/13901449     Board::getLegalMoves() const [33]
+                0.00    0.00 3296091/13901449     Board::getNormalMoves() const [34]
+                0.00    0.00 10155276/13901449     Board::attacked(int, Types::Color) const [24]
+[18]     0.0    0.00    0.00 13901449         pawn_attacks(unsigned long long, Types::Color) [18]
+-----------------------------------------------
+                0.00    0.00    2701/12378764     Board::getCheckMoves() const [37]
+                0.00    0.00  206604/12378764     Board::checkCount() const [32]
+                0.00    0.00  206604/12378764     Board::getLegalMoves() const [33]
+                0.00    0.00  824255/12378764     Board::getNormalMoves() const [34]
+                0.00    0.00  983324/12378764     Board::makeMove(Move&) [15]
+                0.00    0.00 10155276/12378764     Board::attacked(int, Types::Color) const [24]
+[19]     0.0    0.00    0.00 12378764         knight_attacks(unsigned long long) [19]
+-----------------------------------------------
+                0.00    0.00    2224/11570729     Board::getCheckMoves() const [37]
+                0.00    0.00  179055/11570729     Board::makeMove(Move&) [15]
+                0.00    0.00  206604/11570729     Board::checkCount() const [32]
+                0.00    0.00  206604/11570729     Board::getLegalMoves() const [33]
+                0.00    0.00  824488/11570729     Board::getNormalMoves() const [34]
+                0.00    0.00 10151754/11570729     Board::attacked(int, Types::Color) const [24]
+[20]     0.0    0.00    0.00 11570729         rook_attacks(unsigned long long, unsigned long long) [20]
+-----------------------------------------------
+                0.00    0.00   11061/11367850     Board::getCheckMoves() const [37]
+                0.00    0.00  206604/11367850     Board::checkCount() const [32]
+                0.00    0.00  206604/11367850     Board::getLegalMoves() const [33]
+                0.00    0.00  379601/11367850     Board::makeMove(Move&) [15]
+                0.00    0.00  412226/11367850     Board::getNormalMoves() const [34]
+                0.00    0.00 10151754/11367850     Board::attacked(int, Types::Color) const [24]
+[21]     0.0    0.00    0.00 11367850         queen_attacks(unsigned long long, unsigned long long) [21]
+-----------------------------------------------
+                0.00    0.00     681/10693847     Board::legalMove(Move) const [31]
+                0.00    0.00     962/10693847     Board::getCheckMoves() const [37]
+                0.00    0.00  132652/10693847     Board::makeMove(Move&) [15]
+                0.00    0.00  412246/10693847     Board::getNormalMoves() const [34]
+                0.00    0.00 10147306/10693847     Board::attacked(int, Types::Color) const [24]
+[22]     0.0    0.00    0.00 10693847         king_attacks(unsigned long long) [22]
+-----------------------------------------------
+                0.00    0.00   40526/10654620     Board::legalMove(Move) const [31]
+                0.00    0.00 10614094/10654620     Board::makeMove(Move&) [15]
+[23]     0.0    0.00    0.00 10654620         Board::inBetween(int, int) const [23]
+                0.00    0.00 8909404/20840784     bishop_attacks(unsigned long long, unsigned long long) [17]
+-----------------------------------------------
+                0.00    0.00 10155276/10155276     Board::mobility(Types::Color) const [29]
+[24]     0.0    0.00    0.00 10155276         Board::attacked(int, Types::Color) const [24]
+                0.00    0.00 10155276/13901449     pawn_attacks(unsigned long long, Types::Color) [18]
+                0.00    0.00 10155276/12378764     knight_attacks(unsigned long long) [19]
+                0.00    0.00 10154758/20840784     bishop_attacks(unsigned long long, unsigned long long) [17]
+                0.00    0.00 10151754/11570729     rook_attacks(unsigned long long, unsigned long long) [20]
+                0.00    0.00 10151754/11367850     queen_attacks(unsigned long long, unsigned long long) [21]
+                0.00    0.00 10147306/10693847     king_attacks(unsigned long long) [22]
+-----------------------------------------------
+                0.00    0.00    7677/6147034     Board::getCheckMoves() const [37]
+                0.00    0.00 2843266/6147034     Board::makeMove(Move&) [15]
+                0.00    0.00 3296091/6147034     Board::getNormalMoves() const [34]
+[25]     0.0    0.00    0.00 6147034         double_pawn_moves(unsigned long long, Types::Color) [25]
+-----------------------------------------------
+                0.00    0.00    7677/6147034     Board::getCheckMoves() const [37]
+                0.00    0.00 2843266/6147034     Board::makeMove(Move&) [15]
+                0.00    0.00 3296091/6147034     Board::getNormalMoves() const [34]
+[26]     0.0    0.00    0.00 6147034         single_pawn_moves(unsigned long long, Types::Color) [26]
+-----------------------------------------------
+                0.00    0.00    5426/5077638     Board::mobility(Types::Color) const [29]
+                0.00    0.00 5072212/5077638     perft(Board&, int) [56]
+[27]     0.0    0.00    0.00 5077638         Board::unmakeMove() [27]
+                0.00    0.00 5077638/57677408     Move::getProm() const [11]
+                0.00    0.00 5077638/57677408     Move::getCapture() const [10]
+                0.00    0.00 5077638/57677408     Move::getStart() const [13]
+                0.00    0.00 5077638/58480904     Move::getEnd() const [9]
+                0.00    0.00 5077638/57677408     Move::getType() const [12]
+                0.00    0.00 5077638/60237052     Move::getFlags() const [8]
+-----------------------------------------------
+                0.00    0.00 5077638/5077638     Board::mobility(Types::Color) const [29]
+[28]     0.0    0.00    0.00 5077638         Board::updatedHashVal(Move&) const [28]
+                0.00    0.00 5077638/58480904     Move::getEnd() const [9]
+                0.00    0.00 5077638/57677408     Move::getStart() const [13]
+                0.00    0.00 5077638/60237052     Move::getFlags() const [8]
+                0.00    0.00 5077638/57677408     Move::getCapture() const [10]
+                0.00    0.00 5077638/57677408     Move::getType() const [12]
+                0.00    0.00 5077638/57677408     Move::getProm() const [11]
+-----------------------------------------------
+                0.00    0.00 5077638/5077638     Board::makeMove(Move&) [15]
+[29]     0.0    0.00    0.00 5077638         Board::mobility(Types::Color) const [29]
+                0.00    0.00 10155276/10155276     Board::attacked(int, Types::Color) const [24]
+                0.00    0.00 5077638/57677408     Move::getStart() const [13]
+                0.00    0.00 5077638/60237052     Move::getFlags() const [8]
+                0.00    0.00 5077638/58480904     Move::getEnd() const [9]
+                0.00    0.00 5077638/57677408     Move::getCapture() const [10]
+                0.00    0.00 5077638/57677408     Move::getProm() const [11]
+                0.00    0.00 5077638/57677408     Move::getType() const [12]
+                0.00    0.00 5077638/5077638     Board::updatedHashVal(Move&) const [28]
+                0.00    0.00 5077638/47728056     Move::Move(unsigned int, unsigned int, unsigned int) [14]
+                0.00    0.00    5426/5077638     Board::unmakeMove() [27]
+                0.00    0.00       6/21615676     void std::vector<int, std::allocator<int> >::_M_emplace_back_aux<int const&>(int const&) [16]
+                0.00    0.00       4/4           void std::vector<Types::Piece, std::allocator<Types::Piece> >::_M_emplace_back_aux<Types::Piece const&>(Types::Piece const&) [42]
+                0.00    0.00       3/1857656     void std::vector<Move, std::allocator<Move> >::_M_emplace_back_aux<Move>(Move&&) [30]
+                0.00    0.00       3/4           void std::vector<unsigned long long, std::allocator<unsigned long long> >::_M_emplace_back_aux<unsigned long long const&>(unsigned long long const&) [43]
+-----------------------------------------------
+                0.00    0.00       1/1857656     Board::Board() [67]
+                0.00    0.00       3/1857656     Board::mobility(Types::Color) const [29]
+                0.00    0.00    2523/1857656     Board::getCheckMoves() const [37]
+                0.00    0.00 1855129/1857656     Board::getNormalMoves() const [34]
+[30]     0.0    0.00    0.00 1857656         void std::vector<Move, std::allocator<Move> >::_M_emplace_back_aux<Move>(Move&&) [30]
+-----------------------------------------------
+                0.00    0.00    4930/829422      Board::getCheckMoves() const [37]
+                0.00    0.00  824492/829422      Board::getNormalMoves() const [34]
+[31]     0.0    0.00    0.00  829422         Board::legalMove(Move) const [31]
+                0.00    0.00  829422/58480904     Move::getEnd() const [9]
+                0.00    0.00  829422/57677408     Move::getStart() const [13]
+                0.00    0.00  829422/60237052     Move::getFlags() const [8]
+                0.00    0.00  829422/57677408     Move::getCapture() const [10]
+                0.00    0.00  829422/57677408     Move::getType() const [12]
+                0.00    0.00  829422/57677408     Move::getProm() const [11]
+                0.00    0.00   40526/10654620     Board::inBetween(int, int) const [23]
+                0.00    0.00     681/10693847     king_attacks(unsigned long long) [22]
+-----------------------------------------------
+                0.00    0.00  206604/206604      Board::getLegalMoves() const [33]
+[32]     0.0    0.00    0.00  206604         Board::checkCount() const [32]
+                0.00    0.00  206604/13901449     pawn_attacks(unsigned long long, Types::Color) [18]
+                0.00    0.00  206604/12378764     knight_attacks(unsigned long long) [19]
+                0.00    0.00  206604/20840784     bishop_attacks(unsigned long long, unsigned long long) [17]
+                0.00    0.00  206604/11570729     rook_attacks(unsigned long long, unsigned long long) [20]
+                0.00    0.00  206604/11367850     queen_attacks(unsigned long long, unsigned long long) [21]
+-----------------------------------------------
+                0.00    0.00  206604/206604      perft(Board&, int) [56]
+[33]     0.0    0.00    0.00  206604         Board::getLegalMoves() const [33]
+                0.00    0.00  206604/13901449     pawn_attacks(unsigned long long, Types::Color) [18]
+                0.00    0.00  206604/12378764     knight_attacks(unsigned long long) [19]
+                0.00    0.00  206604/20840784     bishop_attacks(unsigned long long, unsigned long long) [17]
+                0.00    0.00  206604/11570729     rook_attacks(unsigned long long, unsigned long long) [20]
+                0.00    0.00  206604/11367850     queen_attacks(unsigned long long, unsigned long long) [21]
+                0.00    0.00  206604/206604      Board::checkCount() const [32]
+                0.00    0.00  206123/206123      Board::getNormalMoves() const [34]
+                0.00    0.00     481/481         Board::getCheckMoves() const [37]
+-----------------------------------------------
+                0.00    0.00  206123/206123      Board::getLegalMoves() const [33]
+[34]     0.0    0.00    0.00  206123         Board::getNormalMoves() const [34]
+                0.00    0.00 42638530/47728056     Move::Move(unsigned int, unsigned int, unsigned int) [14]
+                0.00    0.00 21563770/21615676     void std::vector<int, std::allocator<int> >::_M_emplace_back_aux<int const&>(int const&) [16]
+                0.00    0.00 3296091/6147034     single_pawn_moves(unsigned long long, Types::Color) [26]
+                0.00    0.00 3296091/13901449     pawn_attacks(unsigned long long, Types::Color) [18]
+                0.00    0.00 3296091/6147034     double_pawn_moves(unsigned long long, Types::Color) [25]
+                0.00    0.00 1855129/1857656     void std::vector<Move, std::allocator<Move> >::_M_emplace_back_aux<Move>(Move&&) [30]
+                0.00    0.00  824492/829422      Board::legalMove(Move) const [31]
+                0.00    0.00  824488/11570729     rook_attacks(unsigned long long, unsigned long long) [20]
+                0.00    0.00  824316/20840784     bishop_attacks(unsigned long long, unsigned long long) [17]
+                0.00    0.00  824255/12378764     knight_attacks(unsigned long long) [19]
+                0.00    0.00  412246/10693847     king_attacks(unsigned long long) [22]
+                0.00    0.00  412226/11367850     queen_attacks(unsigned long long, unsigned long long) [21]
+-----------------------------------------------
+                0.00    0.00    5248/5248        initmagicmoves() [51]
+[35]     0.0    0.00    0.00    5248         initmagicmoves_Bmoves(int, unsigned long long) [35]
+-----------------------------------------------
+                0.00    0.00     882/882         Board::initHash() [48]
+[36]     0.0    0.00    0.00     882         std::mersenne_twister_engine<unsigned long, 64ul, 312ul, 156ul, 31ul, 13043109905998158313ul, 29ul, 6148914691236517205ul, 17ul, 8202884508482404352ul, 37ul, 18444473444759240704ul, 43ul, 6364136223846793005ul>::operator()() [36]
+-----------------------------------------------
+                0.00    0.00     481/481         Board::getLegalMoves() const [33]
+[37]     0.0    0.00    0.00     481         Board::getCheckMoves() const [37]
+                0.00    0.00   50791/21615676     void std::vector<int, std::allocator<int> >::_M_emplace_back_aux<int const&>(int const&) [16]
+                0.00    0.00   11887/47728056     Move::Move(unsigned int, unsigned int, unsigned int) [14]
+                0.00    0.00   11061/11367850     queen_attacks(unsigned long long, unsigned long long) [21]
+                0.00    0.00    8158/13901449     pawn_attacks(unsigned long long, Types::Color) [18]
+                0.00    0.00    7677/6147034     single_pawn_moves(unsigned long long, Types::Color) [26]
+                0.00    0.00    7677/6147034     double_pawn_moves(unsigned long long, Types::Color) [25]
+                0.00    0.00    7474/20840784     bishop_attacks(unsigned long long, unsigned long long) [17]
+                0.00    0.00    4930/829422      Board::legalMove(Move) const [31]
+                0.00    0.00    2701/12378764     knight_attacks(unsigned long long) [19]
+                0.00    0.00    2523/1857656     void std::vector<Move, std::allocator<Move> >::_M_emplace_back_aux<Move>(Move&&) [30]
+                0.00    0.00    2224/11570729     rook_attacks(unsigned long long, unsigned long long) [20]
+                0.00    0.00     962/10693847     king_attacks(unsigned long long) [22]
+                0.00    0.00     471/471         Board::getIndices(unsigned long long) const [38]
+                0.00    0.00     471/471         _init [40]
+                0.00    0.00     471/471         std::vector<int, std::allocator<int> >::push_back(int const&) [39]
+                0.00    0.00     300/300         Board::sameDiagonal(int, int) const [41]
+-----------------------------------------------
+                0.00    0.00     471/471         Board::getCheckMoves() const [37]
+[38]     0.0    0.00    0.00     471         Board::getIndices(unsigned long long) const [38]
+                0.00    0.00    1107/21615676     void std::vector<int, std::allocator<int> >::_M_emplace_back_aux<int const&>(int const&) [16]
+-----------------------------------------------
+                0.00    0.00     471/471         Board::getCheckMoves() const [37]
+[39]     0.0    0.00    0.00     471         std::vector<int, std::allocator<int> >::push_back(int const&) [39]
+-----------------------------------------------
+                0.00    0.00     471/471         Board::getCheckMoves() const [37]
+[40]     0.0    0.00    0.00     471         _init [40]
+-----------------------------------------------
+                0.00    0.00     300/300         Board::getCheckMoves() const [37]
+[41]     0.0    0.00    0.00     300         Board::sameDiagonal(int, int) const [41]
+                0.00    0.00     600/20840784     bishop_attacks(unsigned long long, unsigned long long) [17]
+-----------------------------------------------
+                0.00    0.00       4/4           Board::mobility(Types::Color) const [29]
+[42]     0.0    0.00    0.00       4         void std::vector<Types::Piece, std::allocator<Types::Piece> >::_M_emplace_back_aux<Types::Piece const&>(Types::Piece const&) [42]
+-----------------------------------------------
+                0.00    0.00       1/4           Board::Board() [67]
+                0.00    0.00       3/4           Board::mobility(Types::Color) const [29]
+[43]     0.0    0.00    0.00       4         void std::vector<unsigned long long, std::allocator<unsigned long long> >::_M_emplace_back_aux<unsigned long long const&>(unsigned long long const&) [43]
+-----------------------------------------------
+                0.00    0.00       1/1           __libc_csu_init [107]
+[44]     0.0    0.00    0.00       1         _GLOBAL__sub_I_MAX_DEPTH [44]
+-----------------------------------------------
+                0.00    0.00       1/1           __libc_csu_init [107]
+[45]     0.0    0.00    0.00       1         _GLOBAL__sub_I__Z9alphabetaR5Boardiii [45]
+-----------------------------------------------
+                0.00    0.00       1/1           __libc_csu_init [107]
+[46]     0.0    0.00    0.00       1         _GLOBAL__sub_I__ZN4MoveC2Ev [46]
+-----------------------------------------------
+                0.00    0.00       1/1           __libc_csu_init [107]
+[47]     0.0    0.00    0.00       1         _GLOBAL__sub_I_pieceTable [47]
+-----------------------------------------------
+                0.00    0.00       1/1           Board::Board() [67]
+[48]     0.0    0.00    0.00       1         Board::initHash() [48]
+                0.00    0.00     882/882         std::mersenne_twister_engine<unsigned long, 64ul, 312ul, 156ul, 31ul, 13043109905998158313ul, 29ul, 6148914691236517205ul, 17ul, 8202884508482404352ul, 37ul, 18444473444759240704ul, 43ul, 6364136223846793005ul>::operator()() [36]
+-----------------------------------------------
+                             5072212             perft(Board&, int) [56]
+[56]     0.0    0.00    0.00       0+5072212 perft(Board&, int) [56]
+                0.00    0.00 41615072/41615072     Board::makeMove(Move&) [15]
+                0.00    0.00 5072212/5077638     Board::unmakeMove() [27]
+                0.00    0.00  206604/206604      Board::getLegalMoves() const [33]
+                             5072212             perft(Board&, int) [56]
+-----------------------------------------------
+
+ This table describes the call tree of the program, and was sorted by
+ the total amount of time spent in each function and its children.
+
+ Each entry in this table consists of several lines.  The line with the
+ index number at the left hand margin lists the current function.
+ The lines above it list the functions that called this function,
+ and the lines below it list the functions this one called.
+ This line lists:
+     index	A unique number given to each element of the table.
+		Index numbers are sorted numerically.
+		The index number is printed next to every function name so
+		it is easier to look up where the function is in the table.
+
+     % time	This is the percentage of the `total' time that was spent
+		in this function and its children.  Note that due to
+		different viewpoints, functions excluded by options, etc,
+		these numbers will NOT add up to 100%.
+
+     self	This is the total amount of time spent in this function.
+
+     children	This is the total amount of time propagated into this
+		function by its children.
+
+     called	This is the number of times the function was called.
+		If the function called itself recursively, the number
+		only includes non-recursive calls, and is followed by
+		a `+' and the number of recursive calls.
+
+     name	The name of the current function.  The index number is
+		printed after it.  If the function is a member of a
+		cycle, the cycle number is printed between the
+		function's name and the index number.
+
+
+ For the function's parents, the fields have the following meanings:
+
+     self	This is the amount of time that was propagated directly
+		from the function into this parent.
+
+     children	This is the amount of time that was propagated from
+		the function's children into this parent.
+
+     called	This is the number of times this parent called the
+		function `/' the total number of times the function
+		was called.  Recursive calls to the function are not
+		included in the number after the `/'.
+
+     name	This is the name of the parent.  The parent's index
+		number is printed after it.  If the parent is a
+		member of a cycle, the cycle number is printed between
+		the name and the index number.
+
+ If the parents of the function cannot be determined, the word
+ `<spontaneous>' is printed in the `name' field, and all the other
+ fields are blank.
+
+ For the function's children, the fields have the following meanings:
+
+     self	This is the amount of time that was propagated directly
+		from the child into the function.
+
+     children	This is the amount of time that was propagated from the
+		child's children to the function.
+
+     called	This is the number of times the function called
+		this child `/' the total number of times the child
+		was called.  Recursive calls by the child are not
+		listed in the number after the `/'.
+
+     name	This is the name of the child.  The child's index
+		number is printed after it.  If the child is a
+		member of a cycle, the cycle number is printed
+		between the name and the index number.
+
+ If there are any cycles (circles) in the call graph, there is an
+ entry for the cycle-as-a-whole.  This entry shows who called the
+ cycle (as parents) and the members of the cycle (as children.)
+ The `+' recursive calls entry shows the number of function calls that
+ were internal to the cycle, and the calls entry for each member shows,
+ for that member, how many times it was called from other members of
+ the cycle.
+
+Copyright (C) 2012-2015 Free Software Foundation, Inc.
+
+Copying and distribution of this file, with or without modification,
+are permitted in any medium without royalty provided the copyright
+notice and this notice are preserved.
+
+Index by function name
+
+  [44] _GLOBAL__sub_I_MAX_DEPTH [27] Board::unmakeMove()  [34] Board::getNormalMoves() const
+  [45] _GLOBAL__sub_I__Z9alphabetaR5Boardiii [48] Board::initHash() [28] Board::updatedHashVal(Move&) const
+  [46] _GLOBAL__sub_I__ZN4MoveC2Ev [15] Board::makeMove(Move&) [24] Board::attacked(int, Types::Color) const
+  [47] _GLOBAL__sub_I_pieceTable [10] Move::getCapture() const [29] Board::mobility(Types::Color) const
+  [22] king_attacks(unsigned long long) [9] Move::getEnd() const [23] Board::inBetween(int, int) const
+  [18] pawn_attacks(unsigned long long, Types::Color) [11] Move::getProm() const [31] Board::legalMove(Move) const
+  [20] rook_attacks(unsigned long long, unsigned long long) [12] Move::getType() const [36] std::mersenne_twister_engine<unsigned long, 64ul, 312ul, 156ul, 31ul, 13043109905998158313ul, 29ul, 6148914691236517205ul, 17ul, 8202884508482404352ul, 37ul, 18444473444759240704ul, 43ul, 6364136223846793005ul>::operator()()
+  [21] queen_attacks(unsigned long long, unsigned long long) [8] Move::getFlags() const [30] void std::vector<Move, std::allocator<Move> >::_M_emplace_back_aux<Move>(Move&&)
+  [17] bishop_attacks(unsigned long long, unsigned long long) [13] Move::getStart() const [42] void std::vector<Types::Piece, std::allocator<Types::Piece> >::_M_emplace_back_aux<Types::Piece const&>(Types::Piece const&)
+  [19] knight_attacks(unsigned long long) [32] Board::checkCount() const [16] void std::vector<int, std::allocator<int> >::_M_emplace_back_aux<int const&>(int const&)
+  [25] double_pawn_moves(unsigned long long, Types::Color) [38] Board::getIndices(unsigned long long) const [39] std::vector<int, std::allocator<int> >::push_back(int const&)
+  [26] single_pawn_moves(unsigned long long, Types::Color) [41] Board::sameDiagonal(int, int) const [43] void std::vector<unsigned long long, std::allocator<unsigned long long> >::_M_emplace_back_aux<unsigned long long const&>(unsigned long long const&)
+  [35] initmagicmoves_Bmoves(int, unsigned long long) [37] Board::getCheckMoves() const [40] _init
+  [14] Move::Move(unsigned int, unsigned int, unsigned int) [33] Board::getLegalMoves() const

@@ -128,6 +128,10 @@ U64 perft(Board& b, int depth) {
 int main() {
     initmagicmoves();
     Board BOARD;
-    game(BOARD);
+    auto begin = std::chrono::high_resolution_clock::now();
+    std::cout << perft(BOARD, 5) << std::endl;
+    auto end = std::chrono::high_resolution_clock::now();
+    std::cout << std::chrono::duration_cast<std::chrono::nanoseconds>(end-begin).count() << "ns" << std::endl;
+    //game(BOARD);
     return 0;
 }

@@ -825,35 +825,22 @@ std::vector<Move> Board::getNormalMoves() const {
                 if (getPiece(att) != Piece::None) {
                     if ((lookup[att] & Rank1) || (lookup[att] & Rank7)) {
                         for (int i = 8; i <= 11; i++) {
-                            Move m(count, att, i);
-                            if (legalMove(m)) {
-                                moves.push_back(m);
-                            }
+                            moves.push_back(Move(count, att, i));
                         }
                     }
-                    Move m(count, att, 4);
-                    if (legalMove(m)) {
-                        moves.push_back(m);
-                    }
+                    moves.push_back(Move(count, att, 4));
                 }
-                Move m(count, att, 5);
-                if (legalMove(m)) {
-                    moves.push_back(m);
-                }
+                moves.push_back(Move(count, att, 5));
             }
             for (int move : getIndices(pawnMoves)) {
                 if (getPiece(move) == Piece::None) {
                     for (int i = 12; i <= 15; i++) {
                         Move m(count, move, i);
-                        if (legalMove(m)) {
-                            moves.push_back(m);
-                        }
+                        moves.push_back(m);
                     }
                     for (int i = 0; i <= 1; i++) {
                         Move m(count, move, i);
-                        if (legalMove(m)) {
-                            moves.push_back(m);
-                        }
+                        moves.push_back(m);
                     } 
                 }
             }
@@ -861,75 +848,45 @@ std::vector<Move> Board::getNormalMoves() const {
             U64 knightMoves = knight_attacks(pBB);
             for (int move : getIndices(knightMoves)) {
                 if (getPiece(move) == Piece::None) {
-                    Move m(count, move, 0);
-                    if (legalMove(m)) {
-                        moves.push_back(m);
-                    }
+                    moves.push_back(Move(count, move, 0));
                 } else {
-                    Move m(count, move, 4);
-                    if (legalMove(m)) {
-                        moves.push_back(m);
-                    }
+                    moves.push_back(Move(count, move, 4));
                 }
             }
         } else if (p == Piece::Bishop) {
             U64 bishopMoves = bishop_attacks(pBB, getPieces());
             for (int move : getIndices(bishopMoves)) {
                 if (getPiece(move) == Piece::None) {
-                    Move m(count, move, 0);
-                    if (legalMove(m)) {
-                        moves.push_back(m);
-                    }
+                    moves.push_back(Move(count, move, 0));
                 } else {
-                    Move m(count, move, 4);
-                    if (legalMove(m)) {
-                        moves.push_back(m);
-                    }
+                    moves.push_back(Move(count, move, 4));
                 }
             }
         } else if (p == Piece::Rook) {
             U64 rookMoves = rook_attacks(pBB, getPieces());
             for (int move : getIndices(rookMoves)) {
                 if (getPiece(move) == Piece::None) {
-                    Move m(count, move, 0);
-                    if (legalMove(m)) {
-                        moves.push_back(m);
-                    }
+                    moves.push_back(Move(count, move, 0));
                 } else {
-                    Move m(count, move, 4);
-                    if (legalMove(m)) {
-                        moves.push_back(m);
-                    }
+                    moves.push_back(Move(count, move, 4));
                 }
             }
         } else if (p == Piece::Queen) {
             U64 queenMoves = queen_attacks(pBB, getPieces());
             for (int move : getIndices(queenMoves)) {
                 if (getPiece(move) == Piece::None) {
-                    Move m(count, move, 0);
-                    if (legalMove(m)) {
-                        moves.push_back(m);
-                    }
+                    moves.push_back(Move(count, move, 0));
                 } else {
-                    Move m(count, move, 4);
-                    if (legalMove(m)) {
-                        moves.push_back(m);
-                    }
+                    moves.push_back(Move(count, move, 4));
                 }
             }
         } else if (p == Piece::King) {
             U64 kingMoves = king_attacks(pBB);
             for (int move : getIndices(kingMoves)) {
                 if (getPiece(move) == Piece::None) {
-                    Move m(count, move, 0);
-                    if (legalMove(m)) {
-                        moves.push_back(m);
-                    }
+                    moves.push_back(Move(count, move, 0));
                 } else {
-                    Move m(count, move, 4);
-                    if (legalMove(m)) {
-                        moves.push_back(m);
-                    }
+                    moves.push_back(Move(count, move, 4));
                 }
             }
         }
@@ -1049,38 +1006,22 @@ std::vector<Move> Board::getCheckMoves() const {
                     if (getPiece(att) != Piece::None) {
                         if ((lookup[att] & Rank1) || (lookup[att] & Rank7)) {
                             for (int i = 8; i <= 11; i++) {
-                                Move m(count, att, i);
-                                if (legalMove(m)) {
-                                    moves.push_back(m);
-                                }
+                                moves.push_back(Move(count, att, i));
                             }
                         }
-                        Move m(count, att, 4);
-                        if (legalMove(m)) {
-                            moves.push_back(m);
-                        }
+                        moves.push_back(Move(count, att, 4));
                     }
-                    Move m(count, att, 5);
-                    if (legalMove(m)) {
-                        moves.push_back(m);
-                    }
+                    moves.push_back(Move(count, att, 5));
                 }
             }
             for (int move : getIndices(pawnMoves)) {
                 if (std::find(endSquares.begin(), endSquares.end(), move) != endSquares.end()) {
                     if (getPiece(move) == Piece::None) {
                         for (int i = 12; i <= 15; i++) {
-                            Move m(count, move, i);
-                            if (legalMove(m)) {
-                                moves.push_back(m);
-                            }
+                            moves.push_back(Move(count, move, i));
                         }
-                        for (int i = 0; i <= 1; i++) {
-                            Move m(count, move, i);
-                            if (legalMove(m)) {
-                                moves.push_back(m);
-                            }
-                        } 
+                        moves.push_back(Move(count, move, 0));
+                        moves.push_back(Move(count, move, 1));
                     }
                 }
             }
@@ -1089,15 +1030,9 @@ std::vector<Move> Board::getCheckMoves() const {
             for (int move : getIndices(knightMoves)) {
                 if (std::find(endSquares.begin(), endSquares.end(), move) != endSquares.end()) {
                     if (getPiece(move) == Piece::None) {
-                        Move m(count, move, 0);
-                        if (legalMove(m)) {
-                            moves.push_back(m);
-                        }
+                        moves.push_back(Move(count, move, 0));
                     } else {
-                        Move m(count, move, 4);
-                        if (legalMove(m)) {
-                            moves.push_back(m);
-                        }
+                        moves.push_back(Move(count, move, 4));
                     }
                 }
             }
@@ -1106,15 +1041,9 @@ std::vector<Move> Board::getCheckMoves() const {
             for (int move : getIndices(bishopMoves)) {
                 if (std::find(endSquares.begin(), endSquares.end(), move) != endSquares.end()) {
                     if (getPiece(move) == Piece::None) {
-                        Move m(count, move, 0);
-                        if (legalMove(m)) {
-                            moves.push_back(m);
-                        }
+                        moves.push_back(Move(count, move, 0));
                     } else {
-                        Move m(count, move, 4);
-                        if (legalMove(m)) {
-                            moves.push_back(m);
-                        }
+                        moves.push_back(Move(count, move, 4));
                     }
                 }
             }
@@ -1123,15 +1052,9 @@ std::vector<Move> Board::getCheckMoves() const {
             for (int move : getIndices(rookMoves)) {
                 if (std::find(endSquares.begin(), endSquares.end(), move) != endSquares.end()) {
                     if (getPiece(move) == Piece::None) {
-                        Move m(count, move, 0);
-                        if (legalMove(m)) {
-                            moves.push_back(m);
-                        }
+                        moves.push_back(Move(count, move, 0));
                     } else {
-                        Move m(count, move, 4);
-                        if (legalMove(m)) {
-                            moves.push_back(m);
-                        }
+                        moves.push_back(Move(count, move, 4));
                     }
                 }
             }
@@ -1140,15 +1063,9 @@ std::vector<Move> Board::getCheckMoves() const {
             for (int move : getIndices(queenMoves)) {
                 if (std::find(endSquares.begin(), endSquares.end(), move) != endSquares.end()) {
                     if (getPiece(move) == Piece::None) {
-                        Move m(count, move, 0);
-                        if (legalMove(m)) {
-                            moves.push_back(m);
-                        }
+                        moves.push_back(Move(count, move, 0));
                     } else {
-                        Move m(count, move, 4);
-                        if (legalMove(m)) {
-                            moves.push_back(m);
-                        }
+                        moves.push_back(Move(count, move, 4));
                     }
                 }
             }
@@ -1188,15 +1105,9 @@ std::vector<Move> Board::getDoubleCheckMoves() const {
     U64 kingMoves = king_attacks(kingSquare);
     for (int move : getIndices(kingMoves)) {
         if (getPiece(move) == Piece::None) {
-            Move m(kingSquare, move, 0);
-            if (legalMove(m)) {
-                moves.push_back(m);
-            }
+            moves.push_back(Move(kingSquare, move, 0));
         } else {
-            m = Move(kingSquare, move, 4);
-            if (legalMove(m)) {
-                moves.push_back(m);
-            }
+            moves.push_back(Move(kingSquare, move, 4));
         }
     }
     return moves;
