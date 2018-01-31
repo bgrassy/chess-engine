@@ -1271,6 +1271,7 @@ U64 Board::updatedHashVal(Move &m) const {
     return tmpHashVal;
 }
 
+// Resets the transposition table to its default state
 void Board::flushTransTable() {
     for (int i = 0; i < 10000; i++) {
         transTableAlways[i].ancient = true;
@@ -1278,6 +1279,7 @@ void Board::flushTransTable() {
     }
 }
 
+// Returns the number of times the king is attacked
 int Board::checkCount() const {
     int count = 0;
     Color c, opp;    
