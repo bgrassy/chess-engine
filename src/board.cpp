@@ -1,70 +1,145 @@
-typedef unsigned long long U64;
+/**
+ * Constructs a new Board object to the starting chess position.
+ */
+
 #include "board.hpp"
 
-CBoard::CBoard() {
-    for (int i = 0; i < 64; i++) {
-        lookup[i] = (U64) 1 << i;
-    }
-    pieceBB[0] = 255 | (255 << 8);
-    pieceBB[1] = (255ULL << 48) | (255ULL << 56);
-    pieceBB[2] = (255 << 8) | (255ULL << 48);
-    pieceBB[3] = lookup[1] | lookup[6];
-    pieceBB[4] = lookup[2] | lookup[5];
-    pieceBB[5] = lookup[0] | lookup[7];
-    pieceBB[6] = lookup[3];
-    pieceBB[7] = lookup[4];
-    pieceBB[8] = (255ULL << 48);
-    pieceBB[9] = lookup[57] | lookup[62];
-    pieceBB[10] = lookup[58] | lookup[61];
-    pieceBB[11] = lookup[56] | lookup[63];
-    pieceBB[12] = lookup[59];
-    pieceBB[13] = lookup[60];
-    occupiedBB = pieceBB[0] & pieceBB[1];
-    emptyBB = ~occupiedBB; 
-    whiteMove = true;
-    castling = 0b1111;
-    enPassant = -1;
+Board::Board() {
+    // initialize pieces
+    pieceBB[0] = Rank1 | Rank2;
+    pieceBB[1] = Rank7 | Rank8;
+    pieceBB[2] = Rank2 | Rank7;
+    pieceBB[3] = sqToBB[B1] | sqToBB[G1] | sqToBB[B8] | sqToBB[G8];
+    pieceBB[4] = sqToBB[C1] | sqToBB[F1] | sqToBB[C8] | sqToBB[F8];
+    pieceBB[5] = sqToBB[A1] | sqToBB[H1] | sqToBB[A8] | sqToBB[H8];
+    pieceBB[6] = sqToBB[D1] | sqToBB[D8];
+    pieceBB[7] = sqToBB[E1] | sqToBB[E8];
+
+    occupiedBB = (pieceBB[0] | pieceBB[1]);
+    emptyBB = ~occupiedBB;
+
+    enPassant = NONE;
+    castling[0] = true;
+    castling[1] = true;
+    castling[2] = true;
+    castling[3] = true;
 }
 
-U64 CBoard::getPieceType(enumPiece p) const { return pieceBB[p]; }
+/**
+ * Constructs a new Board object to the given position
+ *
+ * @param FEN the desired starting position in FEN form
+ */
+Board::Board(std::string FEN) {
+    
+}
 
-U64 CBoard::getOccupied() const { return occupiedBB; }
+// Returns pieces of the given piece type
+Bitboard Board::getPieces(Piece pt) {
+    return pieceBB[2 + pt];
+}
 
-U64 CBoard::getEmpty() const { return emptyBB; }
+// Returns pieces of the given color
+Bitboard Board::getPieces(Color ct) {
+    return pieceBB[ct];
+}
 
-U64 CBoard::getWhite() const { return pieceBB[nWhite]; }
+// Returns pieces of the given piece and color
+Bitboard Board::getPieces(Piece pt, Color ct) {
+    return pieceBB[2 + pt] & pieceBB[ct];
+}
 
-U64 CBoard::getBlack() const { return pieceBB[nBlack]; }
+// Returns bitboard of all the white pawns
+Bitboard Board::getWhitePawns() {
+    return pieceBB[0] & pieceBB[2];
+}
 
-U64 CBoard::getWhitePawns() const { return pieceBB[nWhitePawn]; }
+// Returns bitboard of all the white knights
+Bitboard Board::getWhiteKnights() {
+    return pieceBB[0] & pieceBB[3];
+}
 
-U64 CBoard::getWhiteKnights() const { return pieceBB[nWhiteKnight]; }
+// Returns bitboard of all the white bishops
+Bitboard Board::getWhiteBishops() {
+    return pieceBB[0] & pieceBB[4];
+}
 
-U64 CBoard::getWhiteBishops() const { return pieceBB[nWhiteBishop]; }
+// Returns bitboard of all the white rooks
+Bitboard Board::getWhiteRooks() {
+    return pieceBB[0] & pieceBB[5];
+}
 
-U64 CBoard::getWhiteRooks() const { return pieceBB[nWhiteRook]; }
+// Returns bitboard of all the white queens
+Bitboard Board::getWhiteQueens() {
+    return pieceBB[0] & pieceBB[6];
+}
 
-U64 CBoard::getWhiteQueens() const { return pieceBB[nWhiteQueen]; }
+// Returns bitboard of the white king
+Bitboard Board::getWhiteKing() {
+    return pieceBB[0] & pieceBB[7];
+}
 
-U64 CBoard::getWhiteKings() const { return pieceBB[nWhiteKing]; }
+// Returns bitboard of all the black pawns
+Bitboard Board::getBlackPawns() {
+    return pieceBB[1] & pieceBB[2];
+}
 
-U64 CBoard::getBlackPawns() const { return pieceBB[nBlackPawn]; }
+// Returns bitboard of all the black knights
+Bitboard Board::getBlackKnights() {
+    return pieceBB[1] & pieceBB[3];
+}
 
-U64 CBoard::getBlackKnights() const { return pieceBB[nBlackKnight]; }
+// Returns bitboard of all the black bishops
+Bitboard Board::getBlackBishops() {
+    return pieceBB[1] & pieceBB[4];
+}
 
-U64 CBoard::getBlackBishops() const { return pieceBB[nBlackBishop]; }
+// Returns bitboard of all the black rooks
+Bitboard Board::getBlackRooks() {
+    return pieceBB[1] & pieceBB[5];
+}
 
-U64 CBoard::getBlackRooks() const { return pieceBB[nBlackRook]; }
+// Returns bitboard of all the black queens
+Bitboard Board::getBlackQueens() {
+    return pieceBB[1] & pieceBB[6];
+}
 
-U64 CBoard::getBlackQueens() const { return pieceBB[nBlackQueen]; }
+// Returns bitboard of the black king
+Bitboard Board::getBlackKing() {
+    return pieceBB[1] & pieceBB[7];
+}
 
-U64 CBoard::getBlackKings() const { return pieceBB[nBlackKing]; }
+Bitboard Board::getOccupied() {
+    return occupiedBB;
+}
 
-bool CBoard::attacked(U64 occupied, unsigned int square, enumColor c) {
-    U64 pawns = pieceBB[nWhitePawn + c];
-    U64 knights = pieceBB[nWhiteKnight + c];
-    U64 bishopsQueens = pieceBB[nWhiteBishop + c] | pieceBB[nWhiteQueen + c];
-    U64 rooksQueens = pieceBB[nWhiteRook + c] | pieceBB[nWhiteQueen + c];
-    U64 king = pieceBB[nWhiteQueen + c];
-    return pawnAttacks[c][square];
+Bitboard Board::getEmpty() {
+    return emptyBB;
+}
+
+enumSquare Board::enPassantTarget() {
+    return enPassant;
+}
+
+bool Board::attacked(Bitboard occupied, enumSquare square, Color side) {
+   Bitboard pawns = getPieces(nPawn, side);
+   if (pawnAttacks[side^1][square] & pawns) {
+       return true;
+   }
+   Bitboard knights = getPieces(nKnight, side);
+   if (knightAttacks[square] & knights) {
+       return true;
+   }
+   Bitboard king = getPieces(nKing, side);
+   if (kingAttacks[square] & king) {
+       return true;
+   }
+   Bitboard bishopsQueens = getPieces(nQueen, side) | getPieces(nBishop, side);
+   if (slidingAttacksBB<nBishop>(square, occupied) & bishopsQueens) {
+       return true;
+   }
+   Bitboard rooksQueens = getPieces(nQueen, side) | getPieces(nRook, side);
+   if (slidingAttacksBB<nRook>(square, occupied) & rooksQueens) {
+       return true;
+   }
 }

@@ -1,55 +1,89 @@
 #ifndef BOARD
 #define BOARD
 
-#include "types.hpp"
+#include <iostream>
 #include "bitboard.hpp"
-class CBoard {
-    U64 pieceBB[14]; 
-    U64 lookup[64];
-    enumPiece pieces[64];
-    U64 occupiedBB;
-    U64 emptyBB;
-    bool whiteMove;
-    short castling;
-    short enPassant; // en passant square
-    public:
-        CBoard();
-        
-        U64 getPieceType(enumPiece p) const;
 
-        U64 getOccupied() const;
-        
-        U64 getEmpty() const;
+class Board {
+    // Holds bitboards for the different colors and types of pieces
+    Bitboard pieceBB[8];    
+    // Bitboard that is 1 for all the empty squares
+    Bitboard emptyBB;
+    // Bitboard that is 1 for all the occupied squares
+    Bitboard occupiedBB;
+    // En passant target square
+    enumSquare enPassant;
+    // Holds the castling rights
+    bool castling[4];
+    // square to bitboard
+public:
+    /**
+     * Constructs a new Board object to the starting chess position.
+     */
+    Board();
 
-        U64 getWhite() const;
+    /**
+     * Constructs a new Board object to the given position
+     *
+     * @param FEN the desired starting position in FEN form
+     */
+    Board(std::string FEN);
 
-        U64 getBlack() const;
+    // Returns pieces of the given piece type
+    Bitboard getPieces(Piece pt);
 
-        U64 getWhitePawns() const;
+    // Returns pieces of the given color
+    Bitboard getPieces(Color ct);
 
-        U64 getWhiteKnights() const;
+    // Returns pieces of the given piece and color
+    Bitboard getPieces(Piece pt, Color ct);
 
-        U64 getWhiteBishops() const;
+    // Returns bitboard of all the white pawns
+    Bitboard getWhitePawns();
 
-        U64 getWhiteRooks() const;
+    // Returns bitboard of all the white knights
+    Bitboard getWhiteKnights();
 
-        U64 getWhiteQueens() const;
+    // Returns bitboard of all the white bishops
+    Bitboard getWhiteBishops();
 
-        U64 getWhiteKings() const;
+    // Returns bitboard of all the white rooks
+    Bitboard getWhiteRooks();
 
-        U64 getBlackPawns() const;
+    // Returns bitboard of all the white queens
+    Bitboard getWhiteQueens();
 
-        U64 getBlackKnights() const;
+    // Returns bitboard of the white king
+    Bitboard getWhiteKing();
 
-        U64 getBlackBishops() const;
+    // Returns bitboard of all the black pawns
+    Bitboard getBlackPawns();
 
-        U64 getBlackRooks() const;
+    // Returns bitboard of all the black knights
+    Bitboard getBlackKnights();
 
-        U64 getBlackQueens() const;
+    // Returns bitboard of all the black bishops
+    Bitboard getBlackBishops();
 
-        U64 getBlackKings() const;
+    // Returns bitboard of all the black rooks
+    Bitboard getBlackRooks();
 
-        bool attacked(U64 occupied, unsigned int square, enumColor c);
+    // Returns bitboard of all the black queens
+    Bitboard getBlackQueens();
+
+    // Returns bitboard of the black king
+    Bitboard getBlackKing();
+
+    // Returns occupied bitboard
+    Bitboard getOccupied();
+
+    // Returns bitboard of empty pieces
+    Bitboard getEmpty();
+
+    // Returns target of en passant
+    enumSquare enPassantTarget();
+
+    bool attacked(Bitboard occupied, enumSquare square, Color side);
 };
 
-#endif /* ifndef BOARD */
+#endif // #ifndef BOARD
