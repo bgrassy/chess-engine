@@ -42,11 +42,13 @@ const int index64[64] = {
    25, 39, 14, 33, 19, 30,  9, 24,
    13, 18,  8, 12,  7,  6,  5, 63
 };
+
 const Bitboard debruijn64 = 0x03f79d71b4cb0a89ULL;
 
 Bitboard pawnAttacks[2][64];
 Bitboard knightAttacks[64];
 Bitboard kingAttacks[64];
+Bitboard betweenBB[64][64];
 
 int popcount(Bitboard b) {
     int count = 0;
@@ -59,6 +61,7 @@ int popcount(Bitboard b) {
 
 // Initialize key bitboard constants
 void initBitboards() {
+    initmagicmoves();
     for (int i = 0; i < 64; i++) {
         Bitboard b = sqToBB[i];
         pawnAttacks[nWhite][i] = (b << 7) & ~HFile;
@@ -79,8 +82,24 @@ void initBitboards() {
         kingAttacks[i] |= (b >> 1) & ~AFile;
         kingAttacks[i] |= (kingAttacks[i] << 8) | (kingAttacks[i] >> 8);
         kingAttacks[i] |= (b << 8) | (b >> 8);
+
+        for (int j = 0; j <= i; j++) {
+            if (i == j) {
+                betweenBB[i][j] = 0;
+                continue;
+            }
+            Bitboard diagonal = slidingAttacksBB<nBishop>(i, sqToBB[j]) &
+                slidingAttacksBB<nBishop>(j, sqToBB[i]);
+            if (diagonal != 0) {
+                betweenBB[i][j] = diagonal;
+                betweenBB[j][i] = diagonal;
+            } else {
+                betweenBB[i][j] = slidingAttacksBB<nRook>(i, sqToBB[j]) &
+                    slidingAttacksBB<nRook>(j, sqToBB[i]);
+                betweenBB[j][i] = betweenBB[i][j];
+            }
+        }
     }
-    initmagicmoves();
 }
 
 /**

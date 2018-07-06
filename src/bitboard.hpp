@@ -2,6 +2,7 @@
 #define BITBOARD_H
 
 #include "MagicMoves.hpp"
+#include <string>
 
 typedef unsigned long long Bitboard;
 
@@ -26,11 +27,12 @@ extern const Bitboard Rank8;
 extern Bitboard pawnAttacks[2][64];
 extern Bitboard knightAttacks[64];
 extern Bitboard kingAttacks[64];
+extern Bitboard betweenBB[64][64];
 
 // Holds mapping from square number to corresponding bitboard.
 extern const Bitboard sqToBB[64];
 
-enum enumSquare {
+enum Square {
     A1, B1, C1, D1, E1, F1, G1, H1,
     A2, B2, C2, D2, E2, F2, G2, H2,
     A3, B3, C3, D3, E3, F3, G3, H3,
@@ -39,7 +41,7 @@ enum enumSquare {
     A6, B6, C6, D6, E6, F6, G6, H6, 
     A7, B7, C7, D7, E7, F7, G7, H7,
     A8, B8, C8, D8, E8, F8, G8, H8,
-    NONE
+    SQ_NONE
 };
 
 enum Piece {
@@ -48,12 +50,14 @@ enum Piece {
     nBishop,
     nRook,
     nQueen,
-    nKing
+    nKing, 
+    PIECE_NONE
 };
 
 enum Color {
     nWhite,
-    nBlack
+    nBlack,
+    COLOR_NONE
 };
 
 enum Direction {
@@ -99,6 +103,17 @@ template<Piece P>
 constexpr Bitboard slidingAttacksBB(int sq, Bitboard occupied) {
     return (P == nBishop ? Bmagic(sq, occupied) : (P == nRook ? Rmagic(sq, occupied) :
            (P == nQueen ? Bmagic(sq, occupied) | Rmagic(sq, occupied) : 0)));
+}
+
+template<Piece P>
+inline Bitboard allSlidingAttacks(Bitboard pieces, Bitboard occupied) {
+    Bitboard attacks = 0; 
+    while (pieces != 0) {
+        int square = bitScanForward(pieces);
+        pieces &= pieces - 1;
+        attacks |= slidingAttacksBB<P>(square, occupied);
+    }
+    return attacks;
 }
 
 inline Bitboard knightAttacksBB(Bitboard knights) {

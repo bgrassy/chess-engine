@@ -74,7 +74,6 @@ TEST_CASE("Test Generation", "[classic]") {
     SECTION("Test Bishop Generation") {
         Board b = Board();
         initBitboards();
-        cout << slidingAttacksBB<nRook>(D4, b.getOccupied()) << endl;
     }
 
     SECTION("Test Knight Generation") {
@@ -86,8 +85,26 @@ TEST_CASE("Test Generation", "[classic]") {
     SECTION("Test Attacks") {
         Board b = Board();
         initBitboards();
-        REQUIRE(b.attacked(b.getOccupied(), A1, nWhite) == false);
-        REQUIRE(b.attacked(b.getOccupied(), B3, nWhite) == true);
-        REQUIRE(b.attacked(b.getOccupied(), C4, nWhite) == false);
+        REQUIRE(b.attacked(A1, nWhite) == false);
+        REQUIRE(b.attacked(B3, nWhite) == true);
+        REQUIRE(b.attacked(C4, nWhite) == false);
+    }
+    SECTION("Test All") {
+        Board b = Board();
+        initBitboards();
+        string start, end;
+        int flags;
+        vector<Move> v;
+        while (true) {
+            int startSq = find(squareNames, squareNames+64, start) - squareNames;
+            int endSq = find(squareNames, squareNames+64, end) - squareNames;
+            b.makeMove(Move(startSq, endSq, flags));
+            b.getToMove() == nWhite ? getPseudoLegalMoves<nWhite>(v, b) : getPseudoLegalMoves<nBlack>(v, b);
+            for (Move m : v) {
+                cout << m << endl;
+                cout << b.isLegal(m) << endl;
+            }
+            v.clear();
+        }
     }
 }

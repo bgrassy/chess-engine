@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include "bitboard.hpp"
+#include "move.hpp"
 
 class Board {
     // Holds bitboards for the different colors and types of pieces
@@ -12,10 +13,18 @@ class Board {
     // Bitboard that is 1 for all the occupied squares
     Bitboard occupiedBB;
     // En passant target square
-    enumSquare enPassant;
-    // Holds the castling rights
-    bool castling[4];
-    // square to bitboard
+    Square enPassant;
+    // Holds the castling rights:
+    // 0b1011 means: 
+    // white CAN castle kingside
+    // white CAN'T castle queenside
+    // black CAN castle kingside
+    // black CAN castle queenside
+    short castling;
+    // Holds the color of the side to move
+    Color toMove;
+    // Holds the fifty move counter
+    int fiftyCounter;
 public:
     /**
      * Constructs a new Board object to the starting chess position.
@@ -30,60 +39,74 @@ public:
     Board(std::string FEN);
 
     // Returns pieces of the given piece type
-    Bitboard getPieces(Piece pt);
+    Bitboard getPieces(Piece pt) const;
 
     // Returns pieces of the given color
-    Bitboard getPieces(Color ct);
+    Bitboard getPieces(Color ct) const;
 
     // Returns pieces of the given piece and color
-    Bitboard getPieces(Piece pt, Color ct);
+    Bitboard getPieces(Piece pt, Color ct) const;
 
     // Returns bitboard of all the white pawns
-    Bitboard getWhitePawns();
+    Bitboard getWhitePawns() const;
 
     // Returns bitboard of all the white knights
-    Bitboard getWhiteKnights();
+    Bitboard getWhiteKnights() const;
 
     // Returns bitboard of all the white bishops
-    Bitboard getWhiteBishops();
+    Bitboard getWhiteBishops() const;
 
     // Returns bitboard of all the white rooks
-    Bitboard getWhiteRooks();
+    Bitboard getWhiteRooks() const;
 
     // Returns bitboard of all the white queens
-    Bitboard getWhiteQueens();
+    Bitboard getWhiteQueens() const;
 
     // Returns bitboard of the white king
-    Bitboard getWhiteKing();
+    Bitboard getWhiteKing() const;
 
     // Returns bitboard of all the black pawns
-    Bitboard getBlackPawns();
+    Bitboard getBlackPawns() const;
 
     // Returns bitboard of all the black knights
-    Bitboard getBlackKnights();
+    Bitboard getBlackKnights() const;
 
     // Returns bitboard of all the black bishops
-    Bitboard getBlackBishops();
+    Bitboard getBlackBishops() const;
 
     // Returns bitboard of all the black rooks
-    Bitboard getBlackRooks();
+    Bitboard getBlackRooks() const;
 
     // Returns bitboard of all the black queens
-    Bitboard getBlackQueens();
+    Bitboard getBlackQueens() const;
 
     // Returns bitboard of the black king
-    Bitboard getBlackKing();
+    Bitboard getBlackKing() const;
 
     // Returns occupied bitboard
-    Bitboard getOccupied();
+    Bitboard getOccupied() const;
 
     // Returns bitboard of empty pieces
-    Bitboard getEmpty();
+    Bitboard getEmpty() const;
 
     // Returns target of en passant
-    enumSquare enPassantTarget();
+    Square enPassantTarget() const;
+    
+    Color getToMove() const;
 
-    bool attacked(Bitboard occupied, enumSquare square, Color side);
+    bool attacked(int square, Color side) const;
+
+    short getCastlingRights() const;
+
+    void makeMove(Move m);
+
+    void unmakeMove(Move m);
+
+    bool isLegal(Move m) const;
+
+    Piece getPiece(int sq) const;
+
+    Color getColor(int sq) const;
 };
 
 #endif // #ifndef BOARD
