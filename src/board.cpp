@@ -18,8 +18,10 @@ Board::Board() {
     occupiedBB = (pieceBB[0] | pieceBB[1]);
     emptyBB = ~occupiedBB;
 
-    enPassant = SQ_NONE;
-    castling = 0b0000;
+    enPassant.push(SQ_NONE);
+    castling.push(0b0000);
+    capturedList.push(PIECE_NONE);
+    moveList.push(Move(0, 0, 0)); // null move
     toMove = nWhite;
     fiftyCounter = 0;
 }
@@ -117,11 +119,11 @@ Bitboard Board::getEmpty() const {
 }
 
 Square Board::enPassantTarget() const {
-    return enPassant;
+    return enPassant.top();
 }
 
 short Board::getCastlingRights() const {
-    return castling;
+    return castling.top();
 }
 
 Color Board::getToMove() const {
@@ -203,7 +205,7 @@ bool Board::isLegal(Move m) const {
         return false;
     }
     if (m.getFlags() == 5) { // en passant
-        if (end != enPassant) {
+        if (end != enPassant.top()) {
             return false;
         }
         if (endColor != COLOR_NONE || startPiece != nPawn) {
@@ -230,14 +232,11 @@ bool Board::isLegal(Move m) const {
         return m.getFlags() == 2 || m.getFlags() == 3 || !attacked((Square)m.getTo(),
                 otherColor);
     }
-    if (attacked((Square)bitScanForward(kingLoc), otherColor)) {
-        return false;
-    }
     return true;
 }
 
 void Board::makeMove(Move m) {
-    if (!isLegal(m)) { return;}
+    //if (!isLegal(m)) { return;}
 
     fiftyCounter++;
     toMove = (toMove == nWhite ? nBlack : nWhite);
@@ -261,8 +260,12 @@ void Board::makeMove(Move m) {
     pieceBB[(int)startP + 2] ^= startEndBB; 
     pieceBB[(int)startC] ^= startEndBB;
 
+    short newCastling = castling.top();
+
     if (flags == 1) {
-        enPassant = (Square)(startC == nWhite ? end - 8 : end + 8);
+        enPassant.push((Square)(startC == nWhite ? end - 8 : end + 8));
+    } else {
+        enPassant.push(SQ_NONE);
     }
 
     if (flags == 5) { // en passant
@@ -290,84 +293,93 @@ void Board::makeMove(Move m) {
             if (startC == nWhite) {
                 pieceBB[nRook + 2] ^= (sqToBB[F1] | sqToBB[H1]);
                 pieceBB[startC] ^= (sqToBB[F1] | sqToBB[H1]);
-                castling &= 0b1100;
+                newCastling &= 0b1100;
             } else { 
                 pieceBB[nRook + 2] ^= (sqToBB[F8] | sqToBB[H8]);
                 pieceBB[startC] ^= (sqToBB[F8] | sqToBB[H8]);
-                castling &= 0b0011;
+                newCastling &= 0b0011;
             }
         } else { // queenside
             if (startC == nWhite) {
                 pieceBB[nRook + 2] ^= (sqToBB[A1] | sqToBB[C1]);
                 pieceBB[startC] ^= (sqToBB[A1] | sqToBB[C1]);
-                castling &= 0b1100;
+                newCastling &= 0b1100;
             } else { 
                 pieceBB[nRook + 2] ^= (sqToBB[A8] | sqToBB[C8]);
                 pieceBB[startC] ^= (sqToBB[A8] | sqToBB[C8]);
-                castling &= 0b0011;
+                newCastling &= 0b0011;
             }
         } 
     } 
 
     if (startP == nRook) {
         if (start == A1) {
-            castling &= 0b1011;
+            newCastling &= 0b1011;
         } else if (start == H1) {
-            castling &= 0b0111;
+            newCastling &= 0b0111;
         } else if (start == A8) {
-            castling &= 0b1110;
+            newCastling &= 0b1110;
         } else if (start == H8) {
-            castling &= 0b1101;
+            newCastling &= 0b1101;
         }
     }
 
     if (endP == nRook) {
         if (start == A1) {
-            castling &= 0b1011;
+            newCastling &= 0b1011;
         } else if (start == H1) {
-            castling &= 0b0111;
+            newCastling &= 0b0111;
         } else if (start == A8) {
-            castling &= 0b1110;
+            newCastling &= 0b1110;
         } else if (start == H8) {
-            castling &= 0b1101;
+            newCastling &= 0b1101;
         }
     }
 
     if (startP == nKing) {
         if (startC == nWhite) {
-            castling &= 0b0011;
+            newCastling &= 0b0011;
         } else {
-            castling &= 0b1100;
+            newCastling &= 0b1100;
         }
     }
+
+    castling.push(newCastling);
+
+    occupiedBB = (pieceBB[0] | pieceBB[1]);
+    emptyBB = ~occupiedBB;
+    capturedList.push(endP);
+    moveList.push(m);
 }
 
-void Board::unmakeMove(Move m) {
-    fiftyCounter++;
+void Board::unmakeMove() {
+    fiftyCounter--;
     toMove = (toMove == nWhite ? nBlack : nWhite);
+    Move m = moveList.top();
+        
+    Piece endP = capturedList.top();
 
-    // Get all the information from the move.
+    bool prom = m.isPromotion();
+    bool capture = m.isCapture();
+
+    castling.pop();
+    enPassant.pop();
+    capturedList.pop();
+    moveList.pop();
     int start = m.getFrom();
     int end = m.getTo();
     int flags = m.getFlags();
-    bool capture = m.isCapture();
-    bool prom = m.isPromotion();
-    // Bitboards corresponding to start and end square.
+
+    Color startC = getColor(end);
+    Piece startP = (prom ? nPawn : getPiece(end));
+    Color other = (startC == nWhite ? nBlack : nWhite);
+
     Bitboard startBB = sqToBB[start];
     Bitboard endBB = sqToBB[end];
-    Bitboard startEndBB = startBB | endBB;
-    // Get the start and end pieces.
-    Piece startP = getPiece(start);
-    Color startC = getColor(start);
-    Piece endP = getPiece(end);
-    Color endC = getColor(end);
+    Bitboard startEndBB = startBB ^ endBB;
 
     pieceBB[(int)startP + 2] ^= startEndBB; 
     pieceBB[(int)startC] ^= startEndBB;
-
-    if (flags == 1) {
-        enPassant = (Square)(startC == nWhite ? end - 8 : end + 8);
-    }
 
     if (flags == 5) { // en passant
         endP = nPawn;
@@ -380,7 +392,7 @@ void Board::unmakeMove(Move m) {
         }
     } else if (capture) {
         pieceBB[(int) endP + 2] ^= endBB;
-        pieceBB[(int) endC] ^= endBB;
+        pieceBB[(int) other] ^= endBB;
     }
 
     if (prom) {
@@ -394,54 +406,21 @@ void Board::unmakeMove(Move m) {
             if (startC == nWhite) {
                 pieceBB[nRook + 2] ^= (sqToBB[F1] | sqToBB[H1]);
                 pieceBB[startC] ^= (sqToBB[F1] | sqToBB[H1]);
-                castling &= 0b1100;
             } else { 
                 pieceBB[nRook + 2] ^= (sqToBB[F8] | sqToBB[H8]);
                 pieceBB[startC] ^= (sqToBB[F8] | sqToBB[H8]);
-                castling &= 0b0011;
             }
         } else { // queenside
             if (startC == nWhite) {
                 pieceBB[nRook + 2] ^= (sqToBB[A1] | sqToBB[C1]);
                 pieceBB[startC] ^= (sqToBB[A1] | sqToBB[C1]);
-                castling &= 0b1100;
             } else { 
                 pieceBB[nRook + 2] ^= (sqToBB[A8] | sqToBB[C8]);
                 pieceBB[startC] ^= (sqToBB[A8] | sqToBB[C8]);
-                castling &= 0b0011;
             }
         } 
     } 
 
-    if (startP == nRook) {
-        if (start == A1) {
-            castling &= 0b1011;
-        } else if (start == H1) {
-            castling &= 0b0111;
-        } else if (start == A8) {
-            castling &= 0b1110;
-        } else if (start == H8) {
-            castling &= 0b1101;
-        }
-    }
-
-    if (endP == nRook) {
-        if (start == A1) {
-            castling &= 0b1011;
-        } else if (start == H1) {
-            castling &= 0b0111;
-        } else if (start == A8) {
-            castling &= 0b1110;
-        } else if (start == H8) {
-            castling &= 0b1101;
-        }
-    }
-
-    if (startP == nKing) {
-        if (startC == nWhite) {
-            castling &= 0b0011;
-        } else {
-            castling &= 0b1100;
-        }
-    }
+    occupiedBB = (pieceBB[0] | pieceBB[1]);
+    emptyBB = ~occupiedBB;
 }

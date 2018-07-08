@@ -5,6 +5,7 @@
 #include "move.hpp"
 #include "bitboard.hpp"
 #include <vector>
+#include <algorithm>
 
 using namespace std;
 
@@ -22,8 +23,8 @@ void getPawnMoves(vector<Move> &moveList, Board &b) {
 
     Bitboard singleMoves = shift<up>(pawns) & empty;
     Bitboard doubleMoves = (shift<up>(singleMoves) & fourthRank) & empty;
-    Bitboard attacksLeft = shift<upLeft>(singleMoves) & other;
-    Bitboard attacksRight = shift<upLeft>(singleMoves) & other;
+    Bitboard attacksLeft = shift<upLeft>(pawns) & other;
+    Bitboard attacksRight = shift<upRight>(pawns) & other;
 
     // single pawn moves
     while (singleMoves != 0) {
@@ -37,6 +38,7 @@ void getPawnMoves(vector<Move> &moveList, Board &b) {
             moveList.push_back(Move(index - up, index, 0));
         }
     }
+
     while (doubleMoves != 0) {
         int index = bitScanForward(doubleMoves);
         doubleMoves &= doubleMoves - 1;
@@ -48,6 +50,7 @@ void getPawnMoves(vector<Move> &moveList, Board &b) {
         attacksLeft &= attacksLeft - 1;
         moveList.push_back(Move(index - upLeft, index, 4));
     }
+
     while (attacksRight != 0) {
         int index = bitScanForward(attacksRight);
         attacksRight &= attacksRight - 1;
@@ -55,10 +58,10 @@ void getPawnMoves(vector<Move> &moveList, Board &b) {
     }
 
     if (enPassant != SQ_NONE) {
-        if (sqToBB[enPassant - upLeft] & pawns) {
+        if (sqToBB[enPassant] & attacksLeft) {
             moveList.push_back(Move(enPassant - upLeft, enPassant, 5)); 
         }
-        if (sqToBB[enPassant - upRight] & pawns) {
+        if (sqToBB[enPassant] & attacksRight) {
             moveList.push_back(Move(enPassant - upRight, enPassant, 5)); 
         }
     }
@@ -96,7 +99,6 @@ void getMoves(vector<Move> &moveList, Board &b) {
     while (pieces != 0) {
         int square = bitScanForward(pieces);
         pieces &= pieces - 1;
-
         Bitboard attacks;
         if (p == nKnight) {
             attacks = knightAttacks[square];

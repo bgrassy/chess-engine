@@ -3,6 +3,7 @@
 
 #include "MagicMoves.hpp"
 #include <string>
+#include <bitset>
 
 typedef unsigned long long Bitboard;
 
@@ -67,9 +68,11 @@ enum Direction {
     WEST = -1,
     NORTH_EAST = 9, 
     NORTH_WEST = 7, 
-    SOUTH_EAST = 7, 
-    SOUTH_WEST = 9
+    SOUTH_EAST = -7, 
+    SOUTH_WEST = -9
 };
+
+std::string toString(Bitboard b);
 
 // returns the number of set bits in the bitboard
 int popcount(Bitboard b);

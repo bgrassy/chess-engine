@@ -4,6 +4,7 @@
 #include <iostream>
 #include "bitboard.hpp"
 #include "move.hpp"
+#include <stack>
 
 class Board {
     // Holds bitboards for the different colors and types of pieces
@@ -13,19 +14,23 @@ class Board {
     // Bitboard that is 1 for all the occupied squares
     Bitboard occupiedBB;
     // En passant target square
-    Square enPassant;
+    std::stack<Square> enPassant;
     // Holds the castling rights:
     // 0b1011 means: 
     // white CAN castle kingside
     // white CAN'T castle queenside
     // black CAN castle kingside
     // black CAN castle queenside
-    short castling;
+    std::stack<short> castling;
     // Holds the color of the side to move
     Color toMove;
     // Holds the fifty move counter
     int fiftyCounter;
+    // holds the list of captured pieces
+    std::stack<Piece> capturedList;
 public:
+    // holds the list of moves
+    std::stack<Move> moveList;
     /**
      * Constructs a new Board object to the starting chess position.
      */
@@ -100,7 +105,7 @@ public:
 
     void makeMove(Move m);
 
-    void unmakeMove(Move m);
+    void unmakeMove();
 
     bool isLegal(Move m) const;
 

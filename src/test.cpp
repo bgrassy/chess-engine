@@ -1,8 +1,8 @@
-#define CATCH_CONFIG_MAIN
+//#define CATCH_CONFIG_MAIN
 #include "catch.hpp"
 #include "board.hpp"
 #include "movegen.hpp"
-
+/**
 TEST_CASE("Get Pieces", "[classic]") {
     SECTION("Test Construction") {
         Board();
@@ -96,9 +96,14 @@ TEST_CASE("Test Generation", "[classic]") {
         int flags;
         vector<Move> v;
         while (true) {
+            cin >> start >> end >> flags;
             int startSq = find(squareNames, squareNames+64, start) - squareNames;
             int endSq = find(squareNames, squareNames+64, end) - squareNames;
-            b.makeMove(Move(startSq, endSq, flags));
+            if (flags >= 16) {
+                b.unmakeMove();
+            } else {
+                b.makeMove(Move(startSq, endSq, flags));
+            }
             b.getToMove() == nWhite ? getPseudoLegalMoves<nWhite>(v, b) : getPseudoLegalMoves<nBlack>(v, b);
             for (Move m : v) {
                 cout << m << endl;
@@ -107,4 +112,56 @@ TEST_CASE("Test Generation", "[classic]") {
             v.clear();
         }
     }
+}
+*/
+
+
+int perft(Board& b, int depth, int MAX) {
+    if (depth == 0) {
+        return 1;
+    }
+    vector<Move> v;
+
+    b.getToMove() == nWhite ? getPseudoLegalMoves<nWhite>(v, b) : getPseudoLegalMoves<nBlack>(v, b);
+
+    int count = 0;
+    for (Move m : v) {
+        if (b.isLegal(m)) {
+            b.makeMove(m);
+            int curr = perft(b, depth - 1, MAX);
+            count = count + curr;
+            b.unmakeMove();
+            if (depth == MAX) {
+                cout << m << " ";
+                cout << curr << endl;
+            }
+        }
+    }
+    return count;
+}
+
+int main() {
+    Board b = Board();
+    initBitboards();
+
+    vector<Move> v;
+    cout << endl;
+    b.makeMove(Move(E2, E3, 0));
+    b.makeMove(Move(D7, D6, 0));
+    b.makeMove(Move(F1, B5, 0));
+    b.getToMove() == nWhite ? getPseudoLegalMoves<nWhite>(v, b) : getPseudoLegalMoves<nBlack>(v, b);
+
+    for (Move m : v) {
+        cout << m << endl;
+        cout << b.isLegal(m) << endl;
+    }
+    /**
+    for (int i = 1; i <= 1; i++) {
+        int count = perft(b, i, i);
+        cout << count << endl;
+    }*/
+
+
+    //TODO: Add evasion move generation
+    return 0;
 }
