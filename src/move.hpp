@@ -8,6 +8,7 @@ extern const std::string squareNames[65];
 class Move {
     unsigned int move;  
 public:
+    Move();
     // Constructs a new Move object holding given squares and flags.
     Move(unsigned int from, unsigned int to, unsigned int flags);
 

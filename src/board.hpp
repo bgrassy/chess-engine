@@ -130,6 +130,8 @@ public:
     Color getColor(int sq) const;
 
     void printBoard() const;
+
+    int boardScore() const;
 };
 
 #endif // #ifndef BOARD

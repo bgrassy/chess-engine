@@ -11,6 +11,8 @@ const std::string squareNames[] = {
     "NONE"
 };
 
+Move::Move() : Move(0, 0, 0) {}
+
 Move::Move(unsigned int from, unsigned int to, unsigned int flags) {
     move = ((flags & 0xf) << 12) | ((from & 0x3f) << 6) | (to & 0x3f);
 }

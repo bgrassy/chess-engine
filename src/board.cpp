@@ -770,3 +770,22 @@ void Board::printBoard() const {
         cout << endl;
     }
 }
+
+int Board::boardScore() const {
+    int whiteMat = 0;
+    int blackMat = 0;
+
+    whiteMat += 10 * popcount(getPieces(nPawn, nWhite));
+    whiteMat += 32 * popcount(getPieces(nKnight, nWhite));
+    whiteMat += 35 * popcount(getPieces(nBishop, nWhite));
+    whiteMat += 50 * popcount(getPieces(nRook, nWhite));
+    whiteMat += 90 * popcount(getPieces(nQueen, nWhite));
+
+    blackMat += 10 * popcount(getPieces(nPawn, nBlack));
+    blackMat += 32 * popcount(getPieces(nKnight, nBlack));
+    blackMat += 35 * popcount(getPieces(nBishop, nBlack));
+    blackMat += 50 * popcount(getPieces(nRook, nBlack));
+    blackMat += 90 * popcount(getPieces(nQueen, nBlack));
+
+    return (toMove == nWhite ? whiteMat - blackMat : blackMat - whiteMat);
+}
