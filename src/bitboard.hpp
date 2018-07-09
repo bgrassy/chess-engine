@@ -29,6 +29,7 @@ extern Bitboard pawnAttacks[2][64];
 extern Bitboard knightAttacks[64];
 extern Bitboard kingAttacks[64];
 extern Bitboard betweenBB[64][64];
+extern Bitboard lineBB[64][64];
 
 // Holds mapping from square number to corresponding bitboard.
 extern const Bitboard sqToBB[64];
@@ -70,6 +71,11 @@ enum Direction {
     NORTH_WEST = 7, 
     SOUTH_EAST = -7, 
     SOUTH_WEST = -9
+};
+
+enum MoveType {
+    ALL,
+    EVASIONS
 };
 
 std::string toString(Bitboard b);

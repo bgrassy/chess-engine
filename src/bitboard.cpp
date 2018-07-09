@@ -1,4 +1,6 @@
 #include "bitboard.hpp"
+#include <iostream>
+using namespace std;
 
 extern const Bitboard AFile = 0x0101010101010101;
 extern const Bitboard BFile = (AFile << 1);      
@@ -49,6 +51,7 @@ Bitboard pawnAttacks[2][64];
 Bitboard knightAttacks[64];
 Bitboard kingAttacks[64];
 Bitboard betweenBB[64][64];
+Bitboard lineBB[64][64];
 
 int popcount(Bitboard b) {
     int count = 0;
@@ -78,25 +81,37 @@ void initBitboards() {
         knightAttacks[i] |= (b >> 10) & ~GFile & ~HFile;
         knightAttacks[i] |= (b >> 17) & ~HFile;
 
-        kingAttacks[i] = (b << 1) & ~HFile;
-        kingAttacks[i] |= (b >> 1) & ~AFile;
+        kingAttacks[i] = (b << 1) & ~AFile;
+        kingAttacks[i] |= (b >> 1) & ~HFile;
         kingAttacks[i] |= (kingAttacks[i] << 8) | (kingAttacks[i] >> 8);
         kingAttacks[i] |= (b << 8) | (b >> 8);
 
         for (int j = 0; j <= i; j++) {
+            lineBB[i][j] = 0;
+            betweenBB[i][j] = 0;
             if (i == j) {
-                betweenBB[i][j] = 0;
                 continue;
             }
-            Bitboard diagonal = slidingAttacksBB<nBishop>(i, sqToBB[j]) &
-                slidingAttacksBB<nBishop>(j, sqToBB[i]);
-            if (diagonal != 0) {
+
+            if (slidingAttacksBB<nBishop>(i, 0) & sqToBB[j]) {
+                Bitboard diagonal = slidingAttacksBB<nBishop>(i, sqToBB[j]) &
+                    slidingAttacksBB<nBishop>(j, sqToBB[i]);
+                Bitboard lineDiagonal = (slidingAttacksBB<nBishop>(i, 0) &
+                    slidingAttacksBB<nBishop>(j, 0)) | sqToBB[i] | sqToBB[j];
                 betweenBB[i][j] = diagonal;
                 betweenBB[j][i] = diagonal;
-            } else {
+                lineBB[i][j] = lineDiagonal;
+                lineBB[j][i] = lineDiagonal;
+            } else if (slidingAttacksBB<nRook>(i, 0) & sqToBB[j]) {
                 betweenBB[i][j] = slidingAttacksBB<nRook>(i, sqToBB[j]) &
                     slidingAttacksBB<nRook>(j, sqToBB[i]);
                 betweenBB[j][i] = betweenBB[i][j];
+                lineBB[i][j] = (slidingAttacksBB<nRook>(i, 0) &
+                    slidingAttacksBB<nRook>(j, 0)) | sqToBB[i] | sqToBB[j];
+                lineBB[j][i] = lineBB[i][j];
+            } else {
+                lineBB[i][j] = lineBB[j][i] = 0;
+                betweenBB[i][j] = betweenBB[j][i] = 0;
             }
         }
     }

@@ -2,9 +2,13 @@
 #define BOARD
 
 #include <iostream>
+#include <vector>
+#include <stack>
+#include <sstream>
+#include <cassert>
+#include <algorithm>
 #include "bitboard.hpp"
 #include "move.hpp"
-#include <stack>
 
 class Board {
     // Holds bitboards for the different colors and types of pieces
@@ -25,9 +29,11 @@ class Board {
     // Holds the color of the side to move
     Color toMove;
     // Holds the fifty move counter
-    int fiftyCounter;
+    std::stack<int> fiftyList;
     // holds the list of captured pieces
     std::stack<Piece> capturedList;
+    // holds the full move counter
+    int fullMove;
 public:
     // holds the list of moves
     std::stack<Move> moveList;
@@ -42,6 +48,8 @@ public:
      * @param FEN the desired starting position in FEN form
      */
     Board(std::string FEN);
+
+    std::string getFEN() const;
 
     // Returns pieces of the given piece type
     Bitboard getPieces(Piece pt) const;
@@ -99,6 +107,14 @@ public:
     
     Color getToMove() const;
 
+    bool inCheck() const;
+
+    bool doubleCheck() const;
+
+    Bitboard getCheckers() const;
+
+    Bitboard pinnedPieces(Bitboard pinners, Square sq) const;
+
     bool attacked(int square, Color side) const;
 
     short getCastlingRights() const;
@@ -112,6 +128,8 @@ public:
     Piece getPiece(int sq) const;
 
     Color getColor(int sq) const;
+
+    void printBoard() const;
 };
 
 #endif // #ifndef BOARD

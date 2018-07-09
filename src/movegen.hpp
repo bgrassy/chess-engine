@@ -9,8 +9,8 @@
 
 using namespace std;
 
-template<Color c>
-void getPawnMoves(vector<Move> &moveList, Board &b) {
+template<Color c, MoveType mv>
+void getPawnMoves(vector<Move> &moveList, Board &b, Bitboard targets) {
     Bitboard pawns = b.getPieces(nPawn, c);
     Bitboard empty = b.getEmpty();
     Bitboard other = (c == nWhite ? b.getPieces(nBlack) : b.getPieces(nWhite));
@@ -23,15 +23,34 @@ void getPawnMoves(vector<Move> &moveList, Board &b) {
 
     Bitboard singleMoves = shift<up>(pawns) & empty;
     Bitboard doubleMoves = (shift<up>(singleMoves) & fourthRank) & empty;
-    Bitboard attacksLeft = shift<upLeft>(pawns) & other;
-    Bitboard attacksRight = shift<upRight>(pawns) & other;
+    Bitboard attacksLeft = shift<upLeft>(pawns);
+    Bitboard attacksRight = shift<upRight>(pawns);
+
+
+    singleMoves = (mv == EVASIONS ? singleMoves & targets : singleMoves);
+    doubleMoves = (mv == EVASIONS ? doubleMoves & targets : doubleMoves);
+    attacksLeft = (mv == EVASIONS ? attacksLeft & targets : attacksLeft);
+    attacksRight = (mv == EVASIONS ? attacksRight & targets : attacksRight);
+
+    // en passant
+    if (enPassant != SQ_NONE) {
+        if (sqToBB[enPassant] & attacksLeft) {
+            moveList.push_back(Move(enPassant - upLeft, enPassant, 5)); 
+        }
+        if (sqToBB[enPassant] & attacksRight) {
+            moveList.push_back(Move(enPassant - upRight, enPassant, 5)); 
+        }
+    }
+
+    attacksLeft &= other;
+    attacksRight &= other;
 
     // single pawn moves
     while (singleMoves != 0) {
         int index = bitScanForward(singleMoves);
         singleMoves &= singleMoves - 1;
         if (index >= A8 || index <= H1) { // promotion
-            for (int flag = 12; flag <= 15; flag++) {
+            for (int flag = 8; flag <= 11; flag++) {
                 moveList.push_back(Move(index - up, index, flag));
             }
         } else {
@@ -48,27 +67,30 @@ void getPawnMoves(vector<Move> &moveList, Board &b) {
     while (attacksLeft != 0) {
         int index = bitScanForward(attacksLeft);
         attacksLeft &= attacksLeft - 1;
-        moveList.push_back(Move(index - upLeft, index, 4));
+        if (index >= A8 || index <= H1) {
+            for (int flag = 12; flag <= 15; flag++) {
+                moveList.push_back(Move(index - upLeft, index, flag));
+            }
+        } else {
+            moveList.push_back(Move(index - upLeft, index, 4));
+        }
     }
 
     while (attacksRight != 0) {
         int index = bitScanForward(attacksRight);
         attacksRight &= attacksRight - 1;
-        moveList.push_back(Move(index - upRight, index, 4));
-    }
-
-    if (enPassant != SQ_NONE) {
-        if (sqToBB[enPassant] & attacksLeft) {
-            moveList.push_back(Move(enPassant - upLeft, enPassant, 5)); 
-        }
-        if (sqToBB[enPassant] & attacksRight) {
-            moveList.push_back(Move(enPassant - upRight, enPassant, 5)); 
+        if (index >= A8 || index <= H1) {
+            for (int flag = 12; flag <= 15; flag++) {
+                moveList.push_back(Move(index - upRight, index, flag));
+            }
+        } else {
+            moveList.push_back(Move(index - upRight, index, 4));
         }
     }
 }
 
-template<Color c, Piece p>
-void getSlidingMoves(vector<Move> &moveList, Board &b) {
+template<Color c, Piece p, MoveType mv>
+void getSlidingMoves(vector<Move> &moveList, Board &b, Bitboard targets) {
     Bitboard pieces = b.getPieces(p, c);
     Bitboard occupied = b.getOccupied();
     Bitboard other = (c == nWhite ? b.getPieces(nBlack) : b.getPieces(nWhite));
@@ -78,6 +100,7 @@ void getSlidingMoves(vector<Move> &moveList, Board &b) {
         pieces &= pieces - 1;
         // automatically finds proper valid moves
         Bitboard attacks = slidingAttacksBB<p>(square, occupied);
+        attacks = (mv == EVASIONS ? attacks & targets : attacks);
         while (attacks > 0) {
             int attackSquare = bitScanForward(attacks);
             attacks &= attacks - 1;
@@ -90,8 +113,8 @@ void getSlidingMoves(vector<Move> &moveList, Board &b) {
     }
 }
 
-template<Color c, Piece p>
-void getMoves(vector<Move> &moveList, Board &b) {
+template<Color c, Piece p, MoveType mv>
+void getMoves(vector<Move> &moveList, Board &b, Bitboard targets) {
     Bitboard pieces = b.getPieces(p, c); 
     Bitboard occupied = b.getOccupied();
     Bitboard other = (c == nWhite ? b.getPieces(nBlack) : b.getPieces(nWhite));
@@ -106,6 +129,7 @@ void getMoves(vector<Move> &moveList, Board &b) {
             attacks = kingAttacks[square];
         }
 
+        attacks = (mv == EVASIONS ? attacks & targets : attacks);
         while (attacks > 0) {
             int attackSquare = bitScanForward(attacks);
             attacks &= attacks - 1;
@@ -125,29 +149,94 @@ void getCastleMoves(vector<Move> &moveList, Board &b, bool
     Square start = (c == nWhite) ? E1 : E8;
     Square end = kingSide ? ((c == nWhite) ? G1 : G8) : ((c == nWhite) ? C1
             : C8); 
+    Square rookSq = kingSide ? ((c == nWhite) ? H1 : H8) : ((c == nWhite) ? A1
+            : A8); 
+    int step = (kingSide ? WEST : EAST);
+
     Color other = (c == nWhite) ? nBlack : nWhite;
     if ((castling >> (2 * other + kingSide)) & 1) {
-        for (int i = start; i <= end; i++) {
+        for (int i = end; i != start; i+=step) {
             if (b.attacked((Square)i, other)) {
                 return;
             }
         }
-        if (!(betweenBB[start][end] & b.getOccupied())) {
+        if (!(betweenBB[start][rookSq] & b.getOccupied())) {
             moveList.push_back(Move(start, end, 2 + !kingSide));
         }
     }
 }
 
 template<Color c>
+inline void getAllEvasions(vector<Move> &moveList, Board& b, Bitboard targets) {
+    getPawnMoves<c, EVASIONS>(moveList, b, targets);
+    getMoves<c, nKnight, EVASIONS>(moveList, b, targets);
+    getSlidingMoves<c, nBishop, EVASIONS>(moveList, b, targets);
+    getSlidingMoves<c, nRook, EVASIONS>(moveList, b, targets);
+    getSlidingMoves<c, nQueen, EVASIONS>(moveList, b, targets);
+}
+
+// get moves to get out of check
+template<Color c>
+void getEvasions(vector<Move> &moveList, Board& b) {
+    Color other = (c == nWhite) ? nBlack : nWhite;
+    Bitboard otherBB = b.getPieces(other);
+
+    // find list of sliding checkers
+    Bitboard checkers = b.getCheckers();
+    Bitboard sliders = ~b.getPieces(nPawn, other) & ~b.getPieces(nKnight, other);
+    sliders &= checkers;
+    Bitboard sliderAttacks = 0;
+
+    int kingSquare = bitScanForward(b.getPieces(nKing, c));
+
+    while (sliders != 0) {
+        int attackSq = bitScanForward(sliders);
+        sliders &= sliders - 1;
+        sliderAttacks |= lineBB[attackSq][kingSquare] ^ sqToBB[attackSq];
+    }
+
+    // generate list of king evading moves
+    Bitboard kingMoves = kingAttacks[kingSquare] & ~sliderAttacks;
+    while (kingMoves != 0) {
+        int square = bitScanForward(kingMoves);
+        kingMoves &= kingMoves - 1;
+        if (sqToBB[square] & otherBB) {
+            moveList.push_back(Move(kingSquare, square, 4)); 
+        } else {
+            moveList.push_back(Move(kingSquare, square, 0)); 
+        }
+    }
+
+    if (b.doubleCheck()) {
+        return;
+    }
+
+    // We know there is one checker now.
+    int checkSq = bitScanForward(checkers);
+    Bitboard targets = betweenBB[checkSq][kingSquare] | sqToBB[checkSq];
+    getAllEvasions<c>(moveList, b, targets);
+}
+
+template<Color c>
 inline void getPseudoLegalMoves(vector<Move> &moveList, Board& b) {
-    getPawnMoves<c>(moveList, b);
-    getSlidingMoves<c, nBishop>(moveList, b);
-    getSlidingMoves<c, nRook>(moveList, b);
-    getSlidingMoves<c, nQueen>(moveList, b);
-    getMoves<c, nKnight>(moveList, b);
-    getMoves<c, nKing>(moveList, b);
+    getPawnMoves<c, ALL>(moveList, b, 0);
+    getSlidingMoves<c, nBishop, ALL>(moveList, b, 0);
+    getSlidingMoves<c, nRook, ALL>(moveList, b, 0);
+    getSlidingMoves<c, nQueen, ALL>(moveList, b, 0);
+    getMoves<c, nKnight, ALL>(moveList, b, 0);
+    getMoves<c, nKing, ALL>(moveList, b, 0);
     getCastleMoves<c>(moveList, b, true);
     getCastleMoves<c>(moveList, b, false);
 }
+
+template<Color c>
+inline void getAllMoves(vector<Move> &moveList, Board& b) {
+    if (b.inCheck()) {
+        getEvasions<c>(moveList, b);
+    } else {
+        getPseudoLegalMoves<c>(moveList, b);
+    }
+}
+
 
 #endif

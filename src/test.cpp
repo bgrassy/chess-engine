@@ -116,52 +116,57 @@ TEST_CASE("Test Generation", "[classic]") {
 */
 
 
-int perft(Board& b, int depth, int MAX) {
+long perft(Board& b, int depth, int MAX) {
     if (depth == 0) {
         return 1;
     }
     vector<Move> v;
 
-    b.getToMove() == nWhite ? getPseudoLegalMoves<nWhite>(v, b) : getPseudoLegalMoves<nBlack>(v, b);
+    b.getToMove() == nWhite ? getAllMoves<nWhite>(v, b) : getAllMoves<nBlack>(v, b);
 
-    int count = 0;
+    long count = 0;
+    string fen = b.getFEN();
     for (Move m : v) {
         if (b.isLegal(m)) {
             b.makeMove(m);
-            int curr = perft(b, depth - 1, MAX);
+            long curr = perft(b, depth - 1, MAX);
             count = count + curr;
             b.unmakeMove();
+            if (fen != b.getFEN()) {
+                cout << endl;
+                cout << fen << endl;
+                cout << b.getFEN() << endl;
+                cout << m << endl;
+                while (b.moveList.size() != 0) {
+                    cout << b.moveList.top() << endl;
+                    b.moveList.pop();
+                }
+                Board(fen).printBoard();
+                cout << endl;
+                b.printBoard();
+                assert(false);
+            }
+            /*
             if (depth == MAX) {
                 cout << m << " ";
                 cout << curr << endl;
-            }
+            }*/
         }
     }
     return count;
 }
 
 int main() {
-    Board b = Board();
+    std::string fen = "r4rk1/1pp1qppp/p1np1n2/2b1p1B1/2B1P1b1/P1NP1N2/1PP1QPPP/R4RK1 w - - 0 10";
+    Board b = Board(fen);
     initBitboards();
 
-    vector<Move> v;
-    cout << endl;
-    b.makeMove(Move(E2, E3, 0));
-    b.makeMove(Move(D7, D6, 0));
-    b.makeMove(Move(F1, B5, 0));
-    b.getToMove() == nWhite ? getPseudoLegalMoves<nWhite>(v, b) : getPseudoLegalMoves<nBlack>(v, b);
+    b.printBoard();
 
-    for (Move m : v) {
-        cout << m << endl;
-        cout << b.isLegal(m) << endl;
-    }
-    /**
-    for (int i = 1; i <= 1; i++) {
-        int count = perft(b, i, i);
+    for (int i = 1; i <= 4; i++) {
+        long count = perft(b, i, i);
         cout << count << endl;
-    }*/
+    }
 
-
-    //TODO: Add evasion move generation
     return 0;
 }

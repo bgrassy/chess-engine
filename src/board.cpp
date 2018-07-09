@@ -3,6 +3,7 @@
  */
 
 #include "board.hpp"
+using namespace std;
 
 Board::Board() {
     // initialize pieces
@@ -19,11 +20,12 @@ Board::Board() {
     emptyBB = ~occupiedBB;
 
     enPassant.push(SQ_NONE);
-    castling.push(0b0000);
+    castling.push(0b1111);
     capturedList.push(PIECE_NONE);
     moveList.push(Move(0, 0, 0)); // null move
     toMove = nWhite;
-    fiftyCounter = 0;
+    fiftyList.push(0);
+    fullMove = 1;
 }
 
 /**
@@ -32,7 +34,189 @@ Board::Board() {
  * @param FEN the desired starting position in FEN form
  */
 Board::Board(std::string FEN) {
-    
+    pieceBB[0] = 0; 
+    pieceBB[1] = 0;
+    pieceBB[2] = 0;
+    pieceBB[3] = 0;
+    pieceBB[4] = 0;
+    pieceBB[5] = 0;
+    pieceBB[6] = 0;
+    pieceBB[7] = 0;
+
+    std::vector<std::string> result;
+    std::vector<std::string> pieceList;
+    std::istringstream iss(FEN);
+    for(std::string s; iss >> s; )
+        result.push_back(s);    
+
+    assert(result.size() == 6 || result.size() == 4);
+    std::string pieces = result[0];
+    std::replace(pieces.begin(), pieces.end(), '/', ' ');
+
+    std::istringstream pieceISS(pieces);
+    for(std::string s; pieceISS >> s; )
+        pieceList.push_back(s);    
+
+    assert(pieceList.size() == 8);
+    for (int i = 0; i < 8; i++) {
+        std::string row = pieceList[i];
+        int currSq = 0;
+        for (char& ch : row) {
+            if (isdigit(ch)) {
+                currSq += ch - '0';
+                continue;
+            }
+            Color c = isupper(ch) ? nWhite : nBlack;
+            ch = tolower(ch);
+            Piece p;
+            switch (ch) {
+                case 'p':
+                    p = nPawn;
+                    break;
+                case 'n':
+                    p = nKnight;
+                    break;
+                case 'b':
+                    p = nBishop;
+                    break;
+                case 'r':
+                    p = nRook;
+                    break;
+                case 'q':
+                    p = nQueen;
+                    break;
+                case 'k':
+                    p = nKing;
+                    break;
+                default:
+                    assert(false);
+            }
+            pieceBB[c] |= sqToBB[(7 - i) * 8 + currSq];
+            pieceBB[2 + p] |= sqToBB[(7 - i) * 8 + currSq];
+            currSq++;
+        }
+    }
+
+    toMove = (result[1] == "w" ? nWhite : nBlack);
+
+    // castling rights
+    short castle = 0;
+    for (char& ch : result[2]) {
+        switch(ch) {
+            case 'K':
+                castle |= 0b1000;
+                break;
+            case 'Q':
+                castle |= 0b0100;
+                break;
+            case 'k':
+                castle |= 0b0010;
+                break;
+            case 'q':
+                castle |= 0b0001;
+                break;
+        }
+    }
+    castling.push(castle);
+
+    // en passant
+    if (result[3] == "-") {
+        enPassant.push(SQ_NONE);
+    } else {
+        enPassant.push((Square)(std::find(squareNames, squareNames+65, result[3]) -
+                    squareNames));
+    }
+
+    if (result.size() == 6) {
+        fiftyList.push(stoi(result[4]));
+        fullMove = stoi(result[5]);
+    } else {
+        fiftyList.push(0);
+        fullMove = 1;
+    }
+
+    occupiedBB = (pieceBB[0] | pieceBB[1]);
+    emptyBB = ~occupiedBB;
+}
+
+std::string Board::getFEN() const {
+    std::string FEN = "";
+    for (int row = 7; row >= 0; row--) {
+        int emptyCount = 0;
+        for (int col = 0; col < 8; col++) {
+            int sq = 8 * row + col;
+            if (getPiece(sq) == PIECE_NONE) {
+                emptyCount++;
+                continue;
+            }
+            if (emptyCount != 0) {
+                FEN += std::to_string(emptyCount);
+                emptyCount = 0;
+            }
+            char p;
+            switch(getPiece(sq)) {
+                case nPawn:
+                    p = 'p';
+                    break;
+                case nKnight:
+                    p = 'n';
+                    break;
+                case nBishop:
+                    p = 'b';
+                    break;
+                case nRook:
+                    p = 'r';
+                    break;
+                case nQueen:
+                    p = 'q';
+                    break;
+                case nKing:
+                    p = 'k';
+                    break;
+                default:
+                    break;
+            }
+            if (getColor(sq) == nWhite) {
+                p = toupper(p); 
+            }
+            FEN += p;
+        }
+        if (emptyCount != 0) {
+            FEN += std::to_string(emptyCount);
+        }
+        if (row != 0) {
+            FEN += "/";
+        }
+    }
+    FEN += " ";
+    FEN += (toMove == nWhite ? "w" : "b");
+    FEN += " ";
+
+    short castle = castling.top();
+    if (castle & 0b1000) {
+        FEN += "K";
+    }  
+    if (castle & 0b0100) {
+        FEN += "Q";
+    } 
+    if (castle & 0b0010) {
+        FEN += "k";
+    } 
+    if (castle & 0b0001) {
+        FEN += "q";
+    }
+    if (castle) {
+        FEN += " ";
+    } else {
+        FEN += "- ";
+    }
+
+    FEN += (enPassant.top() == SQ_NONE ? "-" : squareNames[enPassant.top()]);
+    FEN += " ";
+
+    FEN += std::to_string(fiftyList.top()) + " " + std::to_string(fullMove);
+
+    return FEN;
 }
 
 // Returns pieces of the given piece type
@@ -153,6 +337,59 @@ bool Board::attacked(int square, Color side) const {
     }
 }
 
+bool Board::inCheck() const {
+    int kingSquare = bitScanForward(getPieces(nKing, toMove)); 
+    Color other = (toMove == nWhite ? nBlack : nWhite);
+    return(attacked(kingSquare, other));
+}
+
+bool Board::doubleCheck() const {
+    int kingSquare = bitScanForward(getPieces(nKing, toMove)); 
+    Color other = (toMove == nWhite ? nBlack : nWhite);
+    int count = 0;
+
+    Bitboard knights = getPieces(nKnight, other);
+    if (knightAttacks[kingSquare] & knights) {
+        count++;
+    }
+    Bitboard bishopsQueens = getPieces(nQueen, other) | getPieces(nBishop,
+            other);
+    if (slidingAttacksBB<nBishop>(kingSquare, occupiedBB) & bishopsQueens) {
+        if (count == 1) {
+            return true;
+        }
+        count++;
+    }
+
+    if (count == 0) {
+        return false;
+    }
+
+    Bitboard rooksQueens = getPieces(nQueen, other) | getPieces(nRook, other);
+    if (slidingAttacksBB<nRook>(kingSquare, occupiedBB) & rooksQueens) {
+        return true;
+    }
+    return false;
+}
+
+Bitboard Board::getCheckers() const {
+    int kingSquare = bitScanForward(getPieces(nKing, toMove)); 
+    Color other = (toMove == nWhite ? nBlack : nWhite);
+    Bitboard checkers = 0;
+
+    checkers |= (pawnAttacks[toMove][kingSquare] & getPieces(nPawn, other));
+    checkers |= (knightAttacks[kingSquare] & getPieces(nKnight, other));
+
+    Bitboard bishopsQueens = getPieces(nQueen, other) | getPieces(nBishop,
+            other);
+    checkers |= (slidingAttacksBB<nBishop>(kingSquare, occupiedBB) & bishopsQueens);
+
+    Bitboard rooksQueens = getPieces(nQueen, other) | getPieces(nRook, other);
+    checkers |= (slidingAttacksBB<nRook>(kingSquare, occupiedBB) & rooksQueens);
+
+    return checkers;
+}
+
 Piece Board::getPiece(int sq) const {
     Bitboard sqBB = sqToBB[sq];
     if (sqBB & pieceBB[2 + nPawn]) {
@@ -191,7 +428,11 @@ bool Board::isLegal(Move m) const {
     Piece startPiece = getPiece((Square)start);
     Color otherColor = (startColor == nWhite ? nBlack : nWhite);
 
-    int pawnSq = end - 8 * (2 * startColor - 1);
+    int pawnSq = end + 8 * (2 * startColor - 1);
+
+    if (m.getFlags() == 1 && (abs(start - end) != 16 || startPiece != nPawn)) {
+        return false;
+    }
 
     if (toMove != startColor || toMove == endColor) {
         return false;
@@ -202,6 +443,10 @@ bool Board::isLegal(Move m) const {
     }
     
     if (m.isCapture() && (endColor == COLOR_NONE) && (m.getFlags() != 5)) {
+        return false;
+    }
+
+    if (!m.isCapture() && endColor != COLOR_NONE) {
         return false;
     }
     if (m.getFlags() == 5) { // en passant
@@ -215,30 +460,61 @@ bool Board::isLegal(Move m) const {
         if (getPiece((Square)(pawnSq)) != nPawn) {
             return false;
         }
+
+        Bitboard bishopsQueens = (pieceBB[nBishop + 2] | pieceBB[nQueen + 2]) &
+            pieceBB[otherColor];
+        Bitboard rooksQueens = (pieceBB[nRook + 2] | pieceBB[nQueen + 2]) &
+            pieceBB[otherColor];
+        Bitboard kingLoc = pieceBB[nKing + 2] & pieceBB[startColor];
+        Bitboard newOccupied = occupiedBB ^ sqToBB[start] ^ sqToBB[end] ^ sqToBB[pawnSq];
+        return !(allSlidingAttacks<nBishop>(bishopsQueens, newOccupied) & kingLoc) &&
+                !(allSlidingAttacks<nRook>(rooksQueens, newOccupied) & kingLoc);
     }
 
-    Bitboard bishopsQueens = (pieceBB[nBishop + 2] | pieceBB[nQueen + 2]) &
-        pieceBB[otherColor];
-    Bitboard rooksQueens = (pieceBB[nRook + 2] | pieceBB[nQueen + 2]) &
-        pieceBB[otherColor];
-    Bitboard kingLoc = pieceBB[nKing + 2] & pieceBB[startColor];
-    Bitboard newOccupied = occupiedBB ^ sqToBB[start] ^ sqToBB[end] ^ sqToBB[pawnSq];
-    if ((allSlidingAttacks<nBishop>(bishopsQueens, newOccupied) & kingLoc) ||
-            (allSlidingAttacks<nRook>(rooksQueens, newOccupied) & kingLoc)) {
-        return false;
-    }
 
     if (startPiece == nKing) {
         return m.getFlags() == 2 || m.getFlags() == 3 || !attacked((Square)m.getTo(),
                 otherColor);
     }
-    return true;
+
+    int kingSquare = bitScanForward(getPieces(nKing, toMove));
+    if (!(pinnedPieces((getPieces(nBishop) | getPieces(nRook) | getPieces(nQueen)) &
+            getPieces(otherColor), (Square)kingSquare) & sqToBB[start])) {
+        return true;
+    }
+
+    return lineBB[kingSquare][start] & sqToBB[end];
+}
+
+// returns all pieces that are pinned to a square by a piece of either color
+Bitboard Board::pinnedPieces(Bitboard pinners, Square sq) const {
+    Bitboard pinned = 0;
+    // get the list of possible attackers/pinners
+    Bitboard attackers = ((slidingAttacksBB<nBishop>(sq, 0) & (getPieces(nBishop) |
+        getPieces(nQueen))) | (slidingAttacksBB<nRook>(sq, 0) &
+        (getPieces(nRook) | getPieces(nQueen)))) & pinners;
+
+    while (attackers) {
+        int attackSq = bitScanForward(attackers);
+        attackers &= attackers - 1;
+
+        Bitboard blockers = betweenBB[attackSq][sq] & occupiedBB;
+        if (popcount(blockers) == 1) {
+            pinned |= blockers; 
+        }
+    }
+
+    return pinned;
 }
 
 void Board::makeMove(Move m) {
     //if (!isLegal(m)) { return;}
+    
+    int fiftyCounter = fiftyList.top() + 1;
+    if (toMove == nBlack) {
+        fullMove++;
+    }
 
-    fiftyCounter++;
     toMove = (toMove == nWhite ? nBlack : nWhite);
 
     // Get all the information from the move.
@@ -261,6 +537,10 @@ void Board::makeMove(Move m) {
     pieceBB[(int)startC] ^= startEndBB;
 
     short newCastling = castling.top();
+
+    if (startP == nPawn || capture) {
+        fiftyCounter = 0;
+    }
 
     if (flags == 1) {
         enPassant.push((Square)(startC == nWhite ? end - 8 : end + 8));
@@ -288,28 +568,26 @@ void Board::makeMove(Move m) {
         pieceBB[2] ^= endBB;
     } 
 
-    if (((flags >> 1) & 1) == 1) { // castling
-        if ((flags & 1) == 0) { // kingside
-            if (startC == nWhite) {
-                pieceBB[nRook + 2] ^= (sqToBB[F1] | sqToBB[H1]);
-                pieceBB[startC] ^= (sqToBB[F1] | sqToBB[H1]);
-                newCastling &= 0b1100;
-            } else { 
-                pieceBB[nRook + 2] ^= (sqToBB[F8] | sqToBB[H8]);
-                pieceBB[startC] ^= (sqToBB[F8] | sqToBB[H8]);
-                newCastling &= 0b0011;
-            }
-        } else { // queenside
-            if (startC == nWhite) {
-                pieceBB[nRook + 2] ^= (sqToBB[A1] | sqToBB[C1]);
-                pieceBB[startC] ^= (sqToBB[A1] | sqToBB[C1]);
-                newCastling &= 0b1100;
-            } else { 
-                pieceBB[nRook + 2] ^= (sqToBB[A8] | sqToBB[C8]);
-                pieceBB[startC] ^= (sqToBB[A8] | sqToBB[C8]);
-                newCastling &= 0b0011;
-            }
-        } 
+    if (flags == 2) { // castling
+        if (startC == nWhite) {
+            pieceBB[nRook + 2] ^= (sqToBB[F1] | sqToBB[H1]);
+            pieceBB[startC] ^= (sqToBB[F1] | sqToBB[H1]);
+            newCastling &= 0b0011;
+        } else { 
+            pieceBB[nRook + 2] ^= (sqToBB[F8] | sqToBB[H8]);
+            pieceBB[startC] ^= (sqToBB[F8] | sqToBB[H8]);
+            newCastling &= 0b1100;
+        }
+    } else if (flags == 3)  { // queenside
+        if (startC == nWhite) {
+            pieceBB[nRook + 2] ^= (sqToBB[A1] | sqToBB[D1]);
+            pieceBB[startC] ^= (sqToBB[A1] | sqToBB[D1]);
+            newCastling &= 0b0011;
+        } else { 
+            pieceBB[nRook + 2] ^= (sqToBB[A8] | sqToBB[D8]);
+            pieceBB[startC] ^= (sqToBB[A8] | sqToBB[D8]);
+            newCastling &= 0b1100;
+        }
     } 
 
     if (startP == nRook) {
@@ -325,13 +603,13 @@ void Board::makeMove(Move m) {
     }
 
     if (endP == nRook) {
-        if (start == A1) {
+        if (end == A1) {
             newCastling &= 0b1011;
-        } else if (start == H1) {
+        } else if (end == H1) {
             newCastling &= 0b0111;
-        } else if (start == A8) {
+        } else if (end == A8) {
             newCastling &= 0b1110;
-        } else if (start == H8) {
+        } else if (end == H8) {
             newCastling &= 0b1101;
         }
     }
@@ -350,10 +628,14 @@ void Board::makeMove(Move m) {
     emptyBB = ~occupiedBB;
     capturedList.push(endP);
     moveList.push(m);
+    fiftyList.push(fiftyCounter);
 }
 
 void Board::unmakeMove() {
-    fiftyCounter--;
+    if (toMove == nWhite) {
+        fullMove--;
+    }
+
     toMove = (toMove == nWhite ? nBlack : nWhite);
     Move m = moveList.top();
         
@@ -366,6 +648,7 @@ void Board::unmakeMove() {
     enPassant.pop();
     capturedList.pop();
     moveList.pop();
+    fiftyList.pop();
     int start = m.getFrom();
     int end = m.getTo();
     int flags = m.getFlags();
@@ -401,26 +684,89 @@ void Board::unmakeMove() {
         pieceBB[2] ^= endBB;
     } 
 
-    if (((flags >> 1) & 1) == 1) { // castling
-        if ((flags & 1) == 0) { // kingside
-            if (startC == nWhite) {
-                pieceBB[nRook + 2] ^= (sqToBB[F1] | sqToBB[H1]);
-                pieceBB[startC] ^= (sqToBB[F1] | sqToBB[H1]);
-            } else { 
-                pieceBB[nRook + 2] ^= (sqToBB[F8] | sqToBB[H8]);
-                pieceBB[startC] ^= (sqToBB[F8] | sqToBB[H8]);
-            }
-        } else { // queenside
-            if (startC == nWhite) {
-                pieceBB[nRook + 2] ^= (sqToBB[A1] | sqToBB[C1]);
-                pieceBB[startC] ^= (sqToBB[A1] | sqToBB[C1]);
-            } else { 
-                pieceBB[nRook + 2] ^= (sqToBB[A8] | sqToBB[C8]);
-                pieceBB[startC] ^= (sqToBB[A8] | sqToBB[C8]);
-            }
-        } 
+    if (flags == 2) { // kingside
+        if (startC == nWhite) {
+            pieceBB[nRook + 2] ^= (sqToBB[F1] | sqToBB[H1]);
+            pieceBB[startC] ^= (sqToBB[F1] | sqToBB[H1]);
+        } else { 
+            pieceBB[nRook + 2] ^= (sqToBB[F8] | sqToBB[H8]);
+            pieceBB[startC] ^= (sqToBB[F8] | sqToBB[H8]);
+        }
+    } else if (flags == 3) { // queenside
+        if (startC == nWhite) {
+            pieceBB[nRook + 2] ^= (sqToBB[A1] | sqToBB[D1]);
+            pieceBB[startC] ^= (sqToBB[A1] | sqToBB[D1]);
+        } else { 
+            pieceBB[nRook + 2] ^= (sqToBB[A8] | sqToBB[D8]);
+            pieceBB[startC] ^= (sqToBB[A8] | sqToBB[D8]);
+        }
     } 
 
     occupiedBB = (pieceBB[0] | pieceBB[1]);
     emptyBB = ~occupiedBB;
+}
+
+void Board::printBoard() const {
+    for (int row = 7; row >= 0; row--) {
+        char p;
+        switch(getPiece(8 * row)) {
+            case nPawn:
+                p = 'p';
+                break;
+            case nKnight:
+                p = 'n';
+                break;
+            case nBishop:
+                p = 'b';
+                break;
+            case nRook:
+                p = 'r';
+                break;
+            case nQueen:
+                p = 'q';
+                break;
+            case nKing:
+                p = 'k';
+                break;
+            default:
+                p = '-';
+                break;
+        }
+        if (getColor(8 * row) == nWhite) {
+            p = toupper(p);
+        }
+        cout << p;
+        for (int col = 1; col < 8; col++) {
+            int sq = 8 * row + col;
+            char p;
+            switch(getPiece(sq)) {
+                case nPawn:
+                    p = 'p';
+                    break;
+                case nKnight:
+                    p = 'n';
+                    break;
+                case nBishop:
+                    p = 'b';
+                    break;
+                case nRook:
+                    p = 'r';
+                    break;
+                case nQueen:
+                    p = 'q';
+                    break;
+                case nKing:
+                    p = 'k';
+                    break;
+                default:
+                    p = '-';
+                    break;
+            }
+            if (getColor(sq) == nWhite) {
+                p = toupper(p);
+            }
+            cout << " " << p;
+        }
+        cout << endl;
+    }
 }
