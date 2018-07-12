@@ -43,35 +43,41 @@ long perft(Board& b, int depth, int MAX) {
 
 int main() {
     Board b = Board();
-    initBitboards();
 
     string start, end;
     int flags;
+    vector<Move> goodMoves;
+    b.printBoard();
     while (true) {
-        b.printBoard();
+        if (goodMoves.size() == 0) {
+            b.getToMove() == nWhite ? getAllMoves<nWhite>(goodMoves, b) : getAllMoves<nBlack>(goodMoves, b);
+        }
         cout << "move: ";
         cin >> start >> end >> flags;
         int startSq = find(squareNames, squareNames+64, start) - squareNames;
         int endSq = find(squareNames, squareNames+64, end) - squareNames;
         Move m = Move(startSq, endSq, flags);
-        if (b.isLegal(m)) {
+        if (find(goodMoves.begin(), goodMoves.end(), m) != goodMoves.end() && b.isLegal(m)) {
             b.makeMove(Move(startSq, endSq, flags));
         } else {
             continue;
         }
-        MoveData moveD = alphabeta(b, 5, -MAX_VALUE, MAX_VALUE);
+        MoveData moveD;
+        for (int depth = 1; depth <= SEARCH_DEPTH; depth++) {
+            moveD = Search::alphabeta(b, depth, -MAX_VALUE, MAX_VALUE);
+        }
         if (moveD.move == Move()) {
+            cout << "no moves" << endl;
             cout << "checkmate!" << endl;
             break;
         }
         b.makeMove(moveD.move);
-        if (moveD.score >= MATE_VALUE) {
-            cout << "checkmate!" << endl;
-            break;
-        }
         cout << moveD.move << endl;
         cout << moveD.score << endl;
         cout << endl;
+        b.printBoard();
+        cout << b.getFEN() << endl;
+        goodMoves.clear();
     }
 
     return 0;

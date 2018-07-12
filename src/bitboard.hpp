@@ -56,6 +56,9 @@ enum Piece {
     PIECE_NONE
 };
 
+extern const int PieceVals[6];
+
+
 enum Color {
     nWhite,
     nBlack,
@@ -85,9 +88,11 @@ int popcount(Bitboard b);
 
 void initBitboards();
 
-int bitScanForward(Bitboard b); 
+Square lsb(Bitboard b); 
 
-int bitScanReverse(Bitboard b);
+Square msb(Bitboard b);
+
+Square pop_lsb(Bitboard* b);
 
 template<Direction D>
 constexpr Bitboard shift(Bitboard b) {
@@ -118,8 +123,7 @@ template<Piece P>
 inline Bitboard allSlidingAttacks(Bitboard pieces, Bitboard occupied) {
     Bitboard attacks = 0; 
     while (pieces != 0) {
-        int square = bitScanForward(pieces);
-        pieces &= pieces - 1;
+        int square = pop_lsb(&pieces);
         attacks |= slidingAttacksBB<P>(square, occupied);
     }
     return attacks;

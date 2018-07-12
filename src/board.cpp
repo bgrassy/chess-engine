@@ -3,9 +3,70 @@
  */
 
 #include "board.hpp"
+#include <random>
 using namespace std;
 
+namespace Zobrist {
+    unsigned long long pieces[12][64];
+    unsigned long long blackMove;
+    unsigned long long castling[4];
+    unsigned long long enPassant[8];
+};
+
+void initZobrist() {
+    random_device rd;
+    mt19937_64 eng(rd());
+    uniform_int_distribution<unsigned long long> distr;
+    for (int color = nWhite; color <= nBlack; color++) {
+        for (int piece = nPawn; piece <= nKing; piece++) {
+            for (int sq = A1; sq <= H8; sq++) {
+                Zobrist::pieces[2 * color + piece][sq] = distr(eng);
+            }
+        }
+    }
+    for (int i = 0; i < 4; i++) {
+        Zobrist::castling[i] = distr(eng);
+    }
+    for (int i = 0; i < 8; i++) {
+        Zobrist::enPassant[i] = distr(eng);
+    }
+    Zobrist::blackMove = distr(eng);
+}
+
+void Board::setZobrist() {
+    unsigned long long hashKey = 0;
+    for (int color = nWhite; color <= nBlack; color++) {
+        for (int piece = nPawn; piece <= nKing; piece++) {
+            Bitboard pieces = getPieces((Piece)piece, (Color)color);
+            while (pieces) {
+                int sq = pop_lsb(&pieces);
+                hashKey ^= Zobrist::pieces[2 * color + piece][sq];
+            }
+        }
+    }
+
+    short castle = castling.top();
+    for (int i = 0; i < 4; i++) {
+        if (castle & (1 << i)) {
+            hashKey ^= Zobrist::castling[i];
+        }
+    }
+
+    if (toMove == nBlack) {
+        hashKey ^= Zobrist::blackMove;
+    }
+
+    if (enPassant.top() != SQ_NONE) {
+        hashKey ^= Zobrist::enPassant[enPassant.top() % 8];
+    }
+    zobrist.push(hashKey);
+}
+
+
 Board::Board() {
+    initBitboards();
+    initZobrist();
+
     // initialize pieces
     pieceBB[0] = Rank1 | Rank2;
     pieceBB[1] = Rank7 | Rank8;
@@ -26,6 +87,8 @@ Board::Board() {
     toMove = nWhite;
     fiftyList.push(0);
     fullMove = 1;
+
+    setZobrist();
 }
 
 /**
@@ -34,6 +97,9 @@ Board::Board() {
  * @param FEN the desired starting position in FEN form
  */
 Board::Board(std::string FEN) {
+    initZobrist();
+    initBitboards();
+
     pieceBB[0] = 0; 
     pieceBB[1] = 0;
     pieceBB[2] = 0;
@@ -137,6 +203,8 @@ Board::Board(std::string FEN) {
 
     occupiedBB = (pieceBB[0] | pieceBB[1]);
     emptyBB = ~occupiedBB;
+
+    setZobrist(); 
 }
 
 std::string Board::getFEN() const {
@@ -314,6 +382,10 @@ Color Board::getToMove() const {
     return toMove;
 }
 
+unsigned long long Board::getZobrist() const {
+    return zobrist.top();
+}
+
 bool Board::attacked(int square, Color side) const {
     Bitboard pawns = getPieces(nPawn, side);
     if (pawnAttacks[side^1][square] & pawns) {
@@ -337,14 +409,50 @@ bool Board::attacked(int square, Color side) const {
     }
 }
 
+Square Board::lva(Square sq, Color side) const {
+    Bitboard pawns = getPieces(nPawn, side);
+    if (pawnAttacks[side^1][sq] & pawns) {
+        return lsb(pawnAttacks[side^1][sq] & pawns);
+    }
+
+    Bitboard knights = getPieces(nKnight, side);
+    if (knightAttacks[sq] & knights) {
+        return lsb(knightAttacks[sq] & knights);
+    }
+
+    Bitboard bishops = getPieces(nBishop, side);
+    Bitboard bishopAttackers = slidingAttacksBB<nBishop>(sq, occupiedBB) & bishops;
+    if (bishopAttackers) {
+        return lsb(bishopAttackers);
+    }
+
+    Bitboard rooks = getPieces(nRook, side);
+    Bitboard rookAttackers = slidingAttacksBB<nRook>(sq, occupiedBB) & rooks;
+    if (rookAttackers) {
+        return lsb(rookAttackers);
+    }
+
+    Bitboard queens = getPieces(nRook, side);
+    Bitboard queenAttackers = (slidingAttacksBB<nBishop>(sq, occupiedBB) |
+            slidingAttacksBB<nRook>(sq, occupiedBB)) & queens;
+    if (queenAttackers) {
+        return lsb(queenAttackers);
+    }
+
+    Bitboard king = getPieces(nKing, side);
+    if (kingAttacks[sq] & king) {
+        return lsb(king);
+    }
+}
+
 bool Board::inCheck() const {
-    int kingSquare = bitScanForward(getPieces(nKing, toMove)); 
+    Square kingSquare = lsb(getPieces(nKing, toMove)); 
     Color other = (toMove == nWhite ? nBlack : nWhite);
     return(attacked(kingSquare, other));
 }
 
 bool Board::doubleCheck() const {
-    int kingSquare = bitScanForward(getPieces(nKing, toMove)); 
+    int kingSquare = lsb(getPieces(nKing, toMove)); 
     Color other = (toMove == nWhite ? nBlack : nWhite);
     int count = 0;
 
@@ -373,7 +481,7 @@ bool Board::doubleCheck() const {
 }
 
 Bitboard Board::getCheckers() const {
-    int kingSquare = bitScanForward(getPieces(nKing, toMove)); 
+    int kingSquare = lsb(getPieces(nKing, toMove)); 
     Color other = (toMove == nWhite ? nBlack : nWhite);
     Bitboard checkers = 0;
 
@@ -477,7 +585,7 @@ bool Board::isLegal(Move m) const {
                 otherColor);
     }
 
-    int kingSquare = bitScanForward(getPieces(nKing, toMove));
+    int kingSquare = lsb(getPieces(nKing, toMove));
     if (!(pinnedPieces((getPieces(nBishop) | getPieces(nRook) | getPieces(nQueen)) &
             getPieces(otherColor), (Square)kingSquare) & sqToBB[start])) {
         return true;
@@ -495,9 +603,7 @@ Bitboard Board::pinnedPieces(Bitboard pinners, Square sq) const {
         (getPieces(nRook) | getPieces(nQueen)))) & pinners;
 
     while (attackers) {
-        int attackSq = bitScanForward(attackers);
-        attackers &= attackers - 1;
-
+        int attackSq = pop_lsb(&attackers);
         Bitboard blockers = betweenBB[attackSq][sq] & occupiedBB;
         if (popcount(blockers) == 1) {
             pinned |= blockers; 
@@ -510,10 +616,13 @@ Bitboard Board::pinnedPieces(Bitboard pinners, Square sq) const {
 void Board::makeMove(Move m) {
     //if (!isLegal(m)) { return;}
     
+    unsigned long long hashKey = zobrist.top();
     int fiftyCounter = fiftyList.top() + 1;
-    if (toMove == nBlack) {
+    if (toMove == nBlack) { 
         fullMove++;
     }
+
+    hashKey ^= Zobrist::blackMove;
 
     toMove = (toMove == nWhite ? nBlack : nWhite);
 
@@ -536,14 +645,22 @@ void Board::makeMove(Move m) {
     pieceBB[(int)startP + 2] ^= startEndBB; 
     pieceBB[(int)startC] ^= startEndBB;
 
+    hashKey ^= Zobrist::pieces[2 * startC + startP][start];
+    hashKey ^= Zobrist::pieces[2 * startC + startP][end];
+
     short newCastling = castling.top();
 
     if (startP == nPawn || capture) {
         fiftyCounter = 0;
     }
 
+    if (enPassant.top() != SQ_NONE) {
+        hashKey ^= Zobrist::enPassant[enPassant.top() % 8];
+    }
+
     if (flags == 1) {
         enPassant.push((Square)(startC == nWhite ? end - 8 : end + 8));
+        hashKey ^= Zobrist::enPassant[enPassant.top() % 8];
     } else {
         enPassant.push(SQ_NONE);
     }
@@ -553,39 +670,52 @@ void Board::makeMove(Move m) {
         if (startC == nWhite) {
             pieceBB[2] ^= sqToBB[end - 8];    
             pieceBB[1] ^= sqToBB[end - 8];
+            hashKey ^= Zobrist::pieces[2 * nBlack + nPawn][end - 8];
         } else {
             pieceBB[2] ^= sqToBB[end + 8];    
             pieceBB[0] ^= sqToBB[end + 8];
+            hashKey ^= Zobrist::pieces[2 * nWhite + nPawn][end + 8];
         }
     } else if (capture) {
         pieceBB[(int) endP + 2] ^= endBB;
         pieceBB[(int) endC] ^= endBB;
+        hashKey ^= Zobrist::pieces[2 * endC + endP][end];
     }
 
     if (prom) {
         int promPiece = 1 + (flags & 3);
         pieceBB[promPiece + 2] ^= endBB;
         pieceBB[2] ^= endBB;
+        hashKey ^= Zobrist::pieces[2 * startC + promPiece][end];
+        hashKey ^= Zobrist::pieces[2 * startC + nPawn][end];
     } 
 
     if (flags == 2) { // castling
         if (startC == nWhite) {
             pieceBB[nRook + 2] ^= (sqToBB[F1] | sqToBB[H1]);
             pieceBB[startC] ^= (sqToBB[F1] | sqToBB[H1]);
+            hashKey ^= Zobrist::pieces[2 * nWhite + nRook][F1];
+            hashKey ^= Zobrist::pieces[2 * nWhite + nRook][H1];
             newCastling &= 0b0011;
         } else { 
             pieceBB[nRook + 2] ^= (sqToBB[F8] | sqToBB[H8]);
             pieceBB[startC] ^= (sqToBB[F8] | sqToBB[H8]);
+            hashKey ^= Zobrist::pieces[2 * nBlack + nRook][F8];
+            hashKey ^= Zobrist::pieces[2 * nBlack + nRook][H8];
             newCastling &= 0b1100;
         }
     } else if (flags == 3)  { // queenside
         if (startC == nWhite) {
             pieceBB[nRook + 2] ^= (sqToBB[A1] | sqToBB[D1]);
             pieceBB[startC] ^= (sqToBB[A1] | sqToBB[D1]);
+            hashKey ^= Zobrist::pieces[2 * nWhite + nRook][A1];
+            hashKey ^= Zobrist::pieces[2 * nWhite + nRook][D1];
             newCastling &= 0b0011;
         } else { 
             pieceBB[nRook + 2] ^= (sqToBB[A8] | sqToBB[D8]);
             pieceBB[startC] ^= (sqToBB[A8] | sqToBB[D8]);
+            hashKey ^= Zobrist::pieces[2 * nBlack + nRook][A8];
+            hashKey ^= Zobrist::pieces[2 * nBlack + nRook][D8];
             newCastling &= 0b1100;
         }
     } 
@@ -622,6 +752,12 @@ void Board::makeMove(Move m) {
         }
     }
 
+    for (int i = 0; i < 4; i++) {
+        if (newCastling & (1 << i)) {
+            hashKey ^= Zobrist::castling[i];
+        }
+    }
+
     castling.push(newCastling);
 
     occupiedBB = (pieceBB[0] | pieceBB[1]);
@@ -629,6 +765,7 @@ void Board::makeMove(Move m) {
     capturedList.push(endP);
     moveList.push(m);
     fiftyList.push(fiftyCounter);
+    zobrist.push(hashKey);
 }
 
 void Board::unmakeMove() {
@@ -649,6 +786,7 @@ void Board::unmakeMove() {
     capturedList.pop();
     moveList.pop();
     fiftyList.pop();
+    zobrist.pop();
     int start = m.getFrom();
     int end = m.getTo();
     int flags = m.getFlags();
@@ -704,6 +842,14 @@ void Board::unmakeMove() {
 
     occupiedBB = (pieceBB[0] | pieceBB[1]);
     emptyBB = ~occupiedBB;
+}
+
+HashEntry Board::getTransTable(int key) const {
+    return transTable[key];
+}
+
+void Board::setTransTable(int key, HashEntry entry) {
+   transTable[key] = entry;
 }
 
 void Board::printBoard() const {
@@ -772,20 +918,18 @@ void Board::printBoard() const {
 }
 
 int Board::boardScore() const {
-    int whiteMat = 0;
-    int blackMat = 0;
+    int score = 0;
+    for (Color c : {nWhite, nBlack}) {
+        for (int p = nPawn; p <= nKing; p++) {
+            int scale = (c == nWhite ? 1 : -1);
+            Bitboard pieces = getPieces((Piece)p, c);
+            while (pieces) {
+                Square sq = pop_lsb(&pieces);
+                score += scale * PieceVals[p];
+                score += scale * pieceTable[p][sq];
+            }
+        }
+    }
 
-    whiteMat += 10 * popcount(getPieces(nPawn, nWhite));
-    whiteMat += 32 * popcount(getPieces(nKnight, nWhite));
-    whiteMat += 35 * popcount(getPieces(nBishop, nWhite));
-    whiteMat += 50 * popcount(getPieces(nRook, nWhite));
-    whiteMat += 90 * popcount(getPieces(nQueen, nWhite));
-
-    blackMat += 10 * popcount(getPieces(nPawn, nBlack));
-    blackMat += 32 * popcount(getPieces(nKnight, nBlack));
-    blackMat += 35 * popcount(getPieces(nBishop, nBlack));
-    blackMat += 50 * popcount(getPieces(nRook, nBlack));
-    blackMat += 90 * popcount(getPieces(nQueen, nBlack));
-
-    return (toMove == nWhite ? whiteMat - blackMat : blackMat - whiteMat);
+    return (toMove == nWhite ? score : -score);
 }

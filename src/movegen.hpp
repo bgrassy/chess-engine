@@ -46,9 +46,8 @@ void getPawnMoves(vector<Move> &moveList, Board &b, Bitboard targets) {
     attacksRight &= other;
 
     // single pawn moves
-    while (singleMoves != 0) {
-        int index = bitScanForward(singleMoves);
-        singleMoves &= singleMoves - 1;
+    while (singleMoves) {
+        int index = pop_lsb(&singleMoves);
         if (index >= A8 || index <= H1) { // promotion
             for (int flag = 8; flag <= 11; flag++) {
                 moveList.push_back(Move(index - up, index, flag));
@@ -58,15 +57,13 @@ void getPawnMoves(vector<Move> &moveList, Board &b, Bitboard targets) {
         }
     }
 
-    while (doubleMoves != 0) {
-        int index = bitScanForward(doubleMoves);
-        doubleMoves &= doubleMoves - 1;
+    while (doubleMoves) {
+        int index = pop_lsb(&doubleMoves);
         moveList.push_back(Move(index - 2 * up, index, 1));
     }
 
-    while (attacksLeft != 0) {
-        int index = bitScanForward(attacksLeft);
-        attacksLeft &= attacksLeft - 1;
+    while (attacksLeft) {
+        int index = pop_lsb(&attacksLeft);
         if (index >= A8 || index <= H1) {
             for (int flag = 12; flag <= 15; flag++) {
                 moveList.push_back(Move(index - upLeft, index, flag));
@@ -76,9 +73,8 @@ void getPawnMoves(vector<Move> &moveList, Board &b, Bitboard targets) {
         }
     }
 
-    while (attacksRight != 0) {
-        int index = bitScanForward(attacksRight);
-        attacksRight &= attacksRight - 1;
+    while (attacksRight) {
+        int index = pop_lsb(&attacksRight);
         if (index >= A8 || index <= H1) {
             for (int flag = 12; flag <= 15; flag++) {
                 moveList.push_back(Move(index - upRight, index, flag));
@@ -95,15 +91,13 @@ void getSlidingMoves(vector<Move> &moveList, Board &b, Bitboard targets) {
     Bitboard occupied = b.getOccupied();
     Bitboard other = (c == nWhite ? b.getPieces(nBlack) : b.getPieces(nWhite));
 
-    while (pieces > 0) {
-        int square = bitScanForward(pieces);
-        pieces &= pieces - 1;
+    while (pieces) {
+        int square = pop_lsb(&pieces);
         // automatically finds proper valid moves
         Bitboard attacks = slidingAttacksBB<p>(square, occupied);
         attacks = (mv == EVASIONS ? attacks & targets : attacks);
-        while (attacks > 0) {
-            int attackSquare = bitScanForward(attacks);
-            attacks &= attacks - 1;
+        while (attacks) {
+            int attackSquare = pop_lsb(&attacks);
             if (sqToBB[attackSquare] & other) { // other piece there
                 moveList.push_back(Move(square, attackSquare, 4)); 
             } else if (sqToBB[attackSquare] & ~occupied) { // not a capture
@@ -119,9 +113,8 @@ void getMoves(vector<Move> &moveList, Board &b, Bitboard targets) {
     Bitboard occupied = b.getOccupied();
     Bitboard other = (c == nWhite ? b.getPieces(nBlack) : b.getPieces(nWhite));
     
-    while (pieces != 0) {
-        int square = bitScanForward(pieces);
-        pieces &= pieces - 1;
+    while (pieces) {
+        int square = pop_lsb(&pieces);
         Bitboard attacks;
         if (p == nKnight) {
             attacks = knightAttacks[square];
@@ -130,9 +123,8 @@ void getMoves(vector<Move> &moveList, Board &b, Bitboard targets) {
         }
 
         attacks = (mv == EVASIONS ? attacks & targets : attacks);
-        while (attacks > 0) {
-            int attackSquare = bitScanForward(attacks);
-            attacks &= attacks - 1;
+        while (attacks) {
+            int attackSquare = pop_lsb(&attacks);
             if (sqToBB[attackSquare] & other) { // other piece there
                 moveList.push_back(Move(square, attackSquare, 4)); 
             } else if (sqToBB[attackSquare] & ~occupied) { // not a capture
@@ -187,19 +179,17 @@ void getEvasions(vector<Move> &moveList, Board& b) {
     sliders &= checkers;
     Bitboard sliderAttacks = 0;
 
-    int kingSquare = bitScanForward(b.getPieces(nKing, c));
+    int kingSquare = lsb(b.getPieces(nKing, c));
 
-    while (sliders != 0) {
-        int attackSq = bitScanForward(sliders);
-        sliders &= sliders - 1;
+    while (sliders) {
+        int attackSq = pop_lsb(&sliders);
         sliderAttacks |= lineBB[attackSq][kingSquare] ^ sqToBB[attackSq];
     }
 
     // generate list of king evading moves
     Bitboard kingMoves = kingAttacks[kingSquare] & ~sliderAttacks;
-    while (kingMoves != 0) {
-        int square = bitScanForward(kingMoves);
-        kingMoves &= kingMoves - 1;
+    while (kingMoves) {
+        int square = pop_lsb(&kingMoves);
         if (sqToBB[square] & otherBB) {
             moveList.push_back(Move(kingSquare, square, 4)); 
         } else {
@@ -212,7 +202,7 @@ void getEvasions(vector<Move> &moveList, Board& b) {
     }
 
     // We know there is one checker now.
-    int checkSq = bitScanForward(checkers);
+    int checkSq = lsb(checkers);
     Bitboard targets = betweenBB[checkSq][kingSquare] | sqToBB[checkSq];
     getAllEvasions<c>(moveList, b, targets);
 }

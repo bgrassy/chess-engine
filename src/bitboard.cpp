@@ -45,6 +45,10 @@ const int index64[64] = {
    13, 18,  8, 12,  7,  6,  5, 63
 };
 
+const int PieceVals[6] = {
+    100, 300, 325, 500, 900, 20000
+};
+
 const Bitboard debruijn64 = 0x03f79d71b4cb0a89ULL;
 
 Bitboard pawnAttacks[2][64];
@@ -124,8 +128,8 @@ void initBitboards() {
  * @requires b != 0
  * @return index (0..63) of least significant one bit
  */
-int bitScanForward(Bitboard b) {
-   return index64[((b ^ (b-1)) * debruijn64) >> 58];
+Square lsb(Bitboard b) {
+   return (Square)index64[((b ^ (b-1)) * debruijn64) >> 58];
 }
 
 /**
@@ -135,12 +139,18 @@ int bitScanForward(Bitboard b) {
  * @requires b != 0
  * @return index (0..63) of most significant one bit
  */
-int bitScanReverse(Bitboard b) {
+Square msb(Bitboard b) {
    b |= b >> 1; 
    b |= b >> 2;
    b |= b >> 4;
    b |= b >> 8;
    b |= b >> 16;
    b |= b >> 32;
-   return index64[(b * debruijn64) >> 58];
+   return (Square)index64[(b * debruijn64) >> 58];
+}
+
+Square pop_lsb(Bitboard* b) {
+    Square b_lsb = lsb(*b);
+    *b &= *b - 1;
+    return b_lsb;
 }
