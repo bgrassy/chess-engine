@@ -27,7 +27,7 @@ MoveData Search::alphabeta(Board &b, int depth, int alpha, int beta) {
     
     Move bestMove;
     if (depth == 0) {
-        int score = b.boardScore();
+        int score = quiesce(b, alpha, beta);
         return MoveData(score, bestMove);
     }
 
@@ -71,6 +71,33 @@ MoveData Search::alphabeta(Board &b, int depth, int alpha, int beta) {
     entry.depth = depth;
     b.setTransTable(hashKey, entry);
     return MoveData(bestVal, bestMove);
+}
+
+int Search::quiesce(Board &b, int alpha, int beta) {
+    int stand_pat = b.boardScore();
+    if (stand_pat >= beta) {
+        return beta;
+    }
+    if (alpha < stand_pat) {
+        alpha = stand_pat;
+    }
+    vector<Move> moveList;
+    b.getToMove() == nWhite ? getCaptures<nWhite>(moveList, b) : getCaptures<nBlack>(moveList, b);
+    for (Move m : moveList)  {
+        if (b.isLegal(m)) {
+            b.makeMove(m);
+            int score = -quiesce(b, -beta, -alpha);
+            b.unmakeMove();
+
+            if (score >= beta) {
+                return beta;
+            }
+            if (score > alpha) {
+                alpha = score;
+            }
+        }
+    }
+    return alpha;
 }
 
 void Search::orderMoves(Board& b, std::vector<Move>& moveList, std::vector<MoveData>& moveScores, int ply) {

@@ -10,7 +10,7 @@
 #include "bitboard.hpp"
 #include "move.hpp"
 
-const int SEARCH_DEPTH = 7;
+const int SEARCH_DEPTH = 5;
 
 const short pieceTable[6][64] = {
     // pawn

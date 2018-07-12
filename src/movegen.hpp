@@ -9,6 +9,14 @@
 
 using namespace std;
 
+
+enum MoveType {
+    ALL,
+    EVASIONS, 
+    CAPTURES,
+    QUIET
+};
+
 template<Color c, MoveType mv>
 void getPawnMoves(vector<Move> &moveList, Board &b, Bitboard targets) {
     Bitboard pawns = b.getPieces(nPawn, c);
@@ -33,12 +41,14 @@ void getPawnMoves(vector<Move> &moveList, Board &b, Bitboard targets) {
     attacksRight = (mv == EVASIONS ? attacksRight & targets : attacksRight);
 
     // en passant
-    if (enPassant != SQ_NONE) {
-        if (sqToBB[enPassant] & attacksLeft) {
-            moveList.push_back(Move(enPassant - upLeft, enPassant, 5)); 
-        }
-        if (sqToBB[enPassant] & attacksRight) {
-            moveList.push_back(Move(enPassant - upRight, enPassant, 5)); 
+    if (mv != QUIET) {
+        if (enPassant != SQ_NONE) {
+            if (sqToBB[enPassant] & attacksLeft) {
+                moveList.push_back(Move(enPassant - upLeft, enPassant, 5)); 
+            }
+            if (sqToBB[enPassant] & attacksRight) {
+                moveList.push_back(Move(enPassant - upRight, enPassant, 5)); 
+            }
         }
     }
 
@@ -46,41 +56,47 @@ void getPawnMoves(vector<Move> &moveList, Board &b, Bitboard targets) {
     attacksRight &= other;
 
     // single pawn moves
-    while (singleMoves) {
-        int index = pop_lsb(&singleMoves);
-        if (index >= A8 || index <= H1) { // promotion
-            for (int flag = 8; flag <= 11; flag++) {
-                moveList.push_back(Move(index - up, index, flag));
+    if (mv != CAPTURES) {
+        while (singleMoves) {
+            int index = pop_lsb(&singleMoves);
+            if (index >= A8 || index <= H1) { // promotion
+                if (mv != QUIET) {
+                    for (int flag = 8; flag <= 11; flag++) {
+                        moveList.push_back(Move(index - up, index, flag));
+                    }
+                }
+            } else {
+                moveList.push_back(Move(index - up, index, 0));
             }
-        } else {
-            moveList.push_back(Move(index - up, index, 0));
+        }
+
+        while (doubleMoves) {
+            int index = pop_lsb(&doubleMoves);
+            moveList.push_back(Move(index - 2 * up, index, 1));
         }
     }
 
-    while (doubleMoves) {
-        int index = pop_lsb(&doubleMoves);
-        moveList.push_back(Move(index - 2 * up, index, 1));
-    }
-
-    while (attacksLeft) {
-        int index = pop_lsb(&attacksLeft);
-        if (index >= A8 || index <= H1) {
-            for (int flag = 12; flag <= 15; flag++) {
-                moveList.push_back(Move(index - upLeft, index, flag));
+    if (mv != QUIET) {
+        while (attacksLeft) {
+            int index = pop_lsb(&attacksLeft);
+            if (index >= A8 || index <= H1) {
+                for (int flag = 12; flag <= 15; flag++) {
+                    moveList.push_back(Move(index - upLeft, index, flag));
+                }
+            } else {
+                moveList.push_back(Move(index - upLeft, index, 4));
             }
-        } else {
-            moveList.push_back(Move(index - upLeft, index, 4));
         }
-    }
 
-    while (attacksRight) {
-        int index = pop_lsb(&attacksRight);
-        if (index >= A8 || index <= H1) {
-            for (int flag = 12; flag <= 15; flag++) {
-                moveList.push_back(Move(index - upRight, index, flag));
+        while (attacksRight) {
+            int index = pop_lsb(&attacksRight);
+            if (index >= A8 || index <= H1) {
+                for (int flag = 12; flag <= 15; flag++) {
+                    moveList.push_back(Move(index - upRight, index, flag));
+                }
+            } else {
+                moveList.push_back(Move(index - upRight, index, 4));
             }
-        } else {
-            moveList.push_back(Move(index - upRight, index, 4));
         }
     }
 }
@@ -98,9 +114,9 @@ void getSlidingMoves(vector<Move> &moveList, Board &b, Bitboard targets) {
         attacks = (mv == EVASIONS ? attacks & targets : attacks);
         while (attacks) {
             int attackSquare = pop_lsb(&attacks);
-            if (sqToBB[attackSquare] & other) { // other piece there
+            if ((sqToBB[attackSquare] & other) && mv != QUIET) { // other piece there
                 moveList.push_back(Move(square, attackSquare, 4)); 
-            } else if (sqToBB[attackSquare] & ~occupied) { // not a capture
+            } else if ((sqToBB[attackSquare] & ~occupied) && mv != CAPTURES) { // not a capture
                 moveList.push_back(Move(square, attackSquare, 0)); 
             }
         }
@@ -125,9 +141,9 @@ void getMoves(vector<Move> &moveList, Board &b, Bitboard targets) {
         attacks = (mv == EVASIONS ? attacks & targets : attacks);
         while (attacks) {
             int attackSquare = pop_lsb(&attacks);
-            if (sqToBB[attackSquare] & other) { // other piece there
+            if ((sqToBB[attackSquare] & other) && mv != QUIET) { // other piece there
                 moveList.push_back(Move(square, attackSquare, 4)); 
-            } else if (sqToBB[attackSquare] & ~occupied) { // not a capture
+            } else if ((sqToBB[attackSquare] & ~occupied) && mv != CAPTURES) { // not a capture
                 moveList.push_back(Move(square, attackSquare, 0)); 
             }
         }
@@ -165,6 +181,16 @@ inline void getAllEvasions(vector<Move> &moveList, Board& b, Bitboard targets) {
     getSlidingMoves<c, nBishop, EVASIONS>(moveList, b, targets);
     getSlidingMoves<c, nRook, EVASIONS>(moveList, b, targets);
     getSlidingMoves<c, nQueen, EVASIONS>(moveList, b, targets);
+}
+
+template<Color c>
+inline void getCaptures(vector<Move> &moveList, Board& b) {
+    getPawnMoves<c, CAPTURES>(moveList, b, 0);
+    getMoves<c, nKnight, CAPTURES>(moveList, b, 0);
+    getSlidingMoves<c, nBishop, CAPTURES>(moveList, b, 0);
+    getSlidingMoves<c, nRook, CAPTURES>(moveList, b, 0);
+    getSlidingMoves<c, nQueen, CAPTURES>(moveList, b, 0);
+    getSlidingMoves<c, nKing, CAPTURES>(moveList, b, 0);
 }
 
 // get moves to get out of check

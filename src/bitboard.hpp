@@ -76,11 +76,6 @@ enum Direction {
     SOUTH_WEST = -9
 };
 
-enum MoveType {
-    ALL,
-    EVASIONS
-};
-
 std::string toString(Bitboard b);
 
 // returns the number of set bits in the bitboard
