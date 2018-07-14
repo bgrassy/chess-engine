@@ -187,6 +187,7 @@ template<Color c>
 inline void getCaptures(vector<Move> &moveList, Board& b) {
     getPawnMoves<c, CAPTURES>(moveList, b, 0);
     getMoves<c, nKnight, CAPTURES>(moveList, b, 0);
+    getMoves<c, nKing, CAPTURES>(moveList, b, 0);
     getSlidingMoves<c, nBishop, CAPTURES>(moveList, b, 0);
     getSlidingMoves<c, nRook, CAPTURES>(moveList, b, 0);
     getSlidingMoves<c, nQueen, CAPTURES>(moveList, b, 0);

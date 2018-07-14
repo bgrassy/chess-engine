@@ -21,6 +21,10 @@ bool Move::operator==(const Move& other) {
     return other.move == move;
 }
 
+bool Move::operator!=(const Move& other) {
+    return other.move != move;
+}
+
 unsigned int Move::getFrom() const {
     return (move >> 6) & 0x3f;
 }

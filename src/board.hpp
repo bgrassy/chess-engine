@@ -10,7 +10,7 @@
 #include "bitboard.hpp"
 #include "move.hpp"
 
-const int SEARCH_DEPTH = 5;
+const int SEARCH_DEPTH = 6;
 
 const short pieceTable[6][64] = {
     // pawn
@@ -68,6 +68,7 @@ const short pieceTable[6][64] = {
         -10,  0,  5,  0,  0,  0,  0,-10,
         -20,-10,-10, -5, -5,-10,-10,-20
     },
+    // king
     {
         -30,-40,-40,-50,-50,-40,-40,-30,
         -30,-40,-40,-50,-50,-40,-40,-30,
@@ -160,6 +161,8 @@ public:
      * @param FEN the desired starting position in FEN form
      */
     Board(std::string FEN);
+
+    void setPosition(std::string FEN);
 
     std::string getFEN() const;
 
@@ -255,9 +258,20 @@ public:
 
     int boardScore() const;
 
+    int materialCount(Color c) const;
+
+    int getIsolatedPawns(Color c) const;
+
+    int getDoubledPawns(Color c) const;
+
+    int getBackwardPawns(Color c) const;
+
+    Move strToMove(std::string s) const;
+
     HashEntry getTransTable(int key) const;
 
     void setTransTable(int key, HashEntry entry);
+    void printPV();
 };
 
 #endif // #ifndef BOARD

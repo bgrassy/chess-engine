@@ -14,11 +14,22 @@ public:
 
     // Overloads equal operator for Move objects
     bool operator==(const Move& other);
+    bool operator!=(const Move& other);
 
     friend std::ostream& operator<<(std::ostream& os, const Move& mv) {
         os << squareNames[mv.getFrom()] << " " << squareNames[mv.getTo()] << " " <<
             mv.getFlags();
         return os;
+    }
+
+    inline std::string shortStr() {
+        std::string prom = "";
+        if (isPromotion()) {
+            int flag = getFlags() - 8;
+            prom = (flag == 0 ? "n" : (flag == 1 ? "b" : (flag == 2 ? "r" :
+                            (flag == 3 ? "q" : ""))));
+        }
+        return squareNames[getFrom()] + squareNames[getTo()] + prom;
     }
 
 

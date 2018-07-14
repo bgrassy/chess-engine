@@ -64,7 +64,6 @@ void Board::setZobrist() {
 
 
 Board::Board() {
-    initBitboards();
     initZobrist();
 
     // initialize pieces
@@ -98,8 +97,22 @@ Board::Board() {
  */
 Board::Board(std::string FEN) {
     initZobrist();
-    initBitboards();
+    setPosition(FEN);
 
+}
+
+void Board::setPosition(std::string FEN) {
+    enPassant = stack<Square>();
+    castling = stack<short>();
+    fiftyList = stack<int>();
+    capturedList = stack<Piece>();
+    zobrist = stack<unsigned long long>();
+    moveList = stack<Move>();
+    for (int i = 0; i < 100000; i++)
+        transTable[i] = HashEntry();
+    for (int i = 0; i < SEARCH_DEPTH + 1; i++)
+        for (int j = 0; j < 2; j++)
+            killerMoves[i][j] = Move();
     pieceBB[0] = 0; 
     pieceBB[1] = 0;
     pieceBB[2] = 0;
@@ -557,6 +570,10 @@ bool Board::isLegal(Move m) const {
     if (!m.isCapture() && endColor != COLOR_NONE) {
         return false;
     }
+
+    if (sqToBB[end] & getPieces(nKing, otherColor)) { // taking king
+        return false;
+    }
     if (m.getFlags() == 5) { // en passant
         if (end != enPassant.top()) {
             return false;
@@ -919,6 +936,7 @@ void Board::printBoard() const {
 
 int Board::boardScore() const {
     int score = 0;
+    /*
     for (Color c : {nWhite, nBlack}) {
         for (int p = nPawn; p <= nKing; p++) {
             int scale = (c == nWhite ? 1 : -1);
@@ -929,7 +947,76 @@ int Board::boardScore() const {
                 score += scale * pieceTable[p][sq];
             }
         }
-    }
+    }*/
+    score = score + (materialCount(nWhite) - materialCount(nBlack));
+    score = score - 13 * (getIsolatedPawns(nWhite) - getIsolatedPawns(nBlack));
+    score = score - 18 * (getDoubledPawns(nWhite) - getDoubledPawns(nBlack));
 
     return (toMove == nWhite ? score : -score);
+}
+
+int Board::materialCount(Color c) const {
+    int score = 0;
+    for (int p = nPawn; p <= nKing; p++) {
+        Bitboard pieces = getPieces((Piece)p, c);
+        while (pieces) {
+            Square sq = pop_lsb(&pieces);
+            score += PieceVals[p];
+            if (c == nWhite) {
+                score += pieceTable[p][sq];
+            } else {
+                score += pieceTable[p][8 * (7 - sq / 8) + (sq & 7)];
+            }
+        }
+    }
+    return score;
+}
+
+int Board::getIsolatedPawns(Color c) const {
+    int count = 0;
+    Bitboard pawns = getPieces(nPawn, c);
+    while (pawns) {
+        Square sq = pop_lsb(&pawns); 
+        int file = sq & 7;
+        if (file != 0) {
+            if (getPieces(nPawn, c) & (0x0101010101010101 << (file - 1))) {
+                continue; 
+            }
+        }
+        if (file != 7) {
+            if (getPieces(nPawn, c) & (0x0101010101010101 << (file + 1))) {
+                continue; 
+            }
+        }
+        count++;
+    }
+    return count;
+}
+
+int Board::getDoubledPawns(Color c) const {
+    int count = 0;
+    Bitboard pawns = getPieces(nPawn, c);
+    for (int i = 0; i < 8; i++) {
+        Bitboard file = (0x0101010101010101 << file);
+        int onFile = popcount(file & pawns);
+        if (onFile > 1) {
+            count += onFile;
+        }
+    }
+    return count;
+}
+
+int Board::getBackwardPawns(Color c) const {
+    return 0;
+}
+    
+void Board::printPV() {
+    HashEntry tt = getTransTable(getZobrist() % 100000);
+    Move m = tt.move;
+    if (tt.nodeType != HASH_NULL && !(m == Move())) {
+        makeMove(m);
+        cout << " " << tt.move.shortStr();
+        printPV();
+        unmakeMove();
+    }
 }

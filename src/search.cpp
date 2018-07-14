@@ -5,10 +5,12 @@ const int MAX_VALUE = 50000;
 const int TABLE_SIZE = 100000;
 // Alpha beta search algorithm. Takes a board and a search depth, and finds the board score
 // using an implementation of alpha beta and minimax.
-MoveData Search::alphabeta(Board &b, int depth, int alpha, int beta) {
+MoveData Search::alphabeta(Board &b, int depth, int alpha, int beta, int *nodes) {
+    *nodes = *nodes + 1;
     int ply = SEARCH_DEPTH - depth;
     int oldAlpha = alpha;
     int hashKey = b.getZobrist() % TABLE_SIZE;
+    HashEntry oldEntry = b.getTransTable(hashKey);
     HashEntry entry = b.getTransTable(hashKey);
     if (entry.nodeType != HASH_NULL && entry.depth >= depth) { // valid node
         if (entry.zobrist == b.getZobrist()) {
@@ -27,7 +29,7 @@ MoveData Search::alphabeta(Board &b, int depth, int alpha, int beta) {
     
     Move bestMove;
     if (depth == 0) {
-        int score = quiesce(b, alpha, beta);
+        int score = quiesce(b, alpha, beta, nodes);
         return MoveData(score, bestMove);
     }
 
@@ -40,7 +42,7 @@ MoveData Search::alphabeta(Board &b, int depth, int alpha, int beta) {
         Move m = mv.move;
         if (b.isLegal(m)) {
             b.makeMove(m);
-            auto searchVal = alphabeta(b, depth - 1, -beta, -alpha);
+            auto searchVal = alphabeta(b, depth - 1, -beta, -alpha, nodes);
             b.unmakeMove();
             if (-searchVal.score > bestVal) {
                 bestVal = -searchVal.score;
@@ -69,24 +71,37 @@ MoveData Search::alphabeta(Board &b, int depth, int alpha, int beta) {
     }
 
     entry.depth = depth;
-    b.setTransTable(hashKey, entry);
+    entry.move = bestMove;
+    if (oldEntry.nodeType != HASH_EXACT && entry.nodeType == HASH_EXACT) {
+        b.setTransTable(hashKey, entry);
+    }
+    if (!(oldEntry.nodeType == HASH_EXACT && entry.nodeType != HASH_EXACT)) {
+        if (entry.depth >= oldEntry.depth) {
+            b.setTransTable(hashKey, entry);
+        }
+    }
     return MoveData(bestVal, bestMove);
 }
 
-int Search::quiesce(Board &b, int alpha, int beta) {
+int Search::quiesce(Board &b, int alpha, int beta, int *nodes) {
     int stand_pat = b.boardScore();
+    *nodes = *nodes + 1;
     if (stand_pat >= beta) {
         return beta;
     }
     if (alpha < stand_pat) {
         alpha = stand_pat;
     }
-    vector<Move> moveList;
-    b.getToMove() == nWhite ? getCaptures<nWhite>(moveList, b) : getCaptures<nBlack>(moveList, b);
-    for (Move m : moveList)  {
+    vector<Move> moves;
+    vector<MoveData> moveList;
+
+    b.getToMove() == nWhite ? getCaptures<nWhite>(moves, b) : getCaptures<nBlack>(moves, b);
+    Search::orderMoves(b, moves, moveList, -1);
+    for (MoveData md : moveList)  {
+        Move m = md.move;
         if (b.isLegal(m)) {
             b.makeMove(m);
-            int score = -quiesce(b, -beta, -alpha);
+            int score = -quiesce(b, -beta, -alpha, nodes);
             b.unmakeMove();
 
             if (score >= beta) {
@@ -109,10 +124,12 @@ void Search::orderMoves(Board& b, std::vector<Move>& moveList, std::vector<MoveD
         } else if (m.isCapture()) {
             mv.score = PieceVals[b.getPiece(m.getTo())] -
                 b.getPiece(m.getFrom());
-        } else if (m == b.killerMoves[ply][0]) {
-            mv.score = 50;
-        } else if (m == b.killerMoves[ply][1]) {
-            mv.score = 49;
+        } else if (ply != -1) {
+            if (m == b.killerMoves[ply][0]) {
+                mv.score = 50;
+            } else if (m == b.killerMoves[ply][1]) {
+                mv.score = 49;
+            }
         } else {
             mv.score = 0;
         }
