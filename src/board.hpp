@@ -11,6 +11,7 @@
 #include "move.hpp"
 
 const int SEARCH_DEPTH = 6;
+enum TABLE_SIZE {TABLE_SIZE = 100000};
 
 const short pieceTable[6][64] = {
     // pawn
@@ -80,6 +81,10 @@ const short pieceTable[6][64] = {
         20, 30, 10,  0,  0, 10, 30, 20
     }
 };
+const int knightMob[9] = {-75,-57,-9,-2,6,14,22,29,36};
+const int bishopMob[14] = {-48,-20,16,26,38,51,55,63,63,68,81,81,91,98};
+const int rookMob[15] = {-58,-27,-15,-10,-5,-2,9,16,30,29,32,38,46,48,58};
+const int queenMob[28] = {-39,-21,3,3,14,22,28,41,43,48,56,60,60,66,67,70,71,73,79,88,88,99,102,102,106,109,113,116};
 
 enum HashType {
     HASH_EXACT,
@@ -140,9 +145,9 @@ class Board {
     // holds the full move counter
     int fullMove;
     // holds the zobrist keys
-    std::stack<unsigned long long> zobrist;
+    std::vector<unsigned long long> zobrist;
     // holds the transposition table
-    HashEntry transTable[100000];
+    HashEntry transTable[TABLE_SIZE];
 public:
     // Holds the killer moves list
     Move killerMoves[SEARCH_DEPTH + 1][2];
@@ -217,6 +222,9 @@ public:
     // Returns bitboard of empty pieces
     Bitboard getEmpty() const;
 
+    // Returns the fifty move counter
+    int getFiftyCount() const;
+
     // Returns zobrist hash key
     unsigned long long getZobrist() const;
 
@@ -266,12 +274,18 @@ public:
 
     int getBackwardPawns(Color c) const;
 
+    int mobilityScore(Color c) const;
+
     Move strToMove(std::string s) const;
 
     HashEntry getTransTable(int key) const;
 
+    // Returns whether a position has been found before
+    bool isRep();
+
     void setTransTable(int key, HashEntry entry);
-    void printPV();
+
+    void printPV(int depth);
 };
 
 #endif // #ifndef BOARD

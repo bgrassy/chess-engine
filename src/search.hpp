@@ -4,11 +4,10 @@
 #include <utility>
 #include "board.hpp"
 #include "movegen.hpp"
+#include <chrono>
 
 extern const int MAX_VALUE;
 extern const int MATE_VALUE;
-extern const int TABLE_SIZE;
-
 
 struct MoveData {
     Move move;
@@ -25,15 +24,40 @@ struct MoveData {
     }
 };
 
+struct SearchInfo {
+	chrono::high_resolution_clock::time_point startTime;
+	chrono::high_resolution_clock::time_point time;
+    int depth;
+    long duration; // in ms
+    int nodes;
+    bool infinite;
+    bool stopped;
+
+    SearchInfo() {
+        depth = 0;
+        duration = 0;
+        nodes = 0;
+        infinite = false;
+        stopped = false;
+    }
+};
+
 struct sortMoves {
     bool operator()(MoveData const &a, MoveData const &b) { 
             return a.score > b.score;
     }
 };
 
-namespace Search {
-    MoveData alphabeta(Board &b, int depth, int alpha, int beta, int *nodes);
-    int quiesce(Board &b, int alpha, int beta, int *nodes);
+class Search {
+    SearchInfo* info;
+public:
+    Search(SearchInfo* info);
+
+    Move bestMove; 
+    int alphabeta(Board &b, int depth, int alpha, int beta);
+    int negamax(Board &b, int depth, int alpha, int beta);
+    int quiesce(Board &b, int alpha, int beta);
     void orderMoves(Board& b, std::vector<Move>& moveList, std::vector<MoveData>& moveScores, int ply);
-}
+    void getBestMove(Board& b);
+};
 #endif /*SEARCH_HPP*/

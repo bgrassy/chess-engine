@@ -2,20 +2,29 @@
 
 const int MATE_VALUE = 25000;
 const int MAX_VALUE = 50000;
-const int TABLE_SIZE = 100000;
+
+Search::Search(SearchInfo* info) {
+    this->info = info;
+}
 // Alpha beta search algorithm. Takes a board and a search depth, and finds the board score
 // using an implementation of alpha beta and minimax.
-MoveData Search::alphabeta(Board &b, int depth, int alpha, int beta, int *nodes) {
-    *nodes = *nodes + 1;
-    int ply = SEARCH_DEPTH - depth;
+int Search::negamax(Board &b, int depth, int alpha, int beta) {
+    info->nodes++;
+    int ply = info->depth - depth;
     int oldAlpha = alpha;
+
+    if (b.isRep() || b.getFiftyCount() > 99) { // one time repetition, fifty moves
+        return 0;
+    }
+
     int hashKey = b.getZobrist() % TABLE_SIZE;
     HashEntry oldEntry = b.getTransTable(hashKey);
     HashEntry entry = b.getTransTable(hashKey);
+
     if (entry.nodeType != HASH_NULL && entry.depth >= depth) { // valid node
         if (entry.zobrist == b.getZobrist()) {
             if (entry.nodeType == HASH_EXACT) {
-                return MoveData(entry.score, entry.move);
+                return entry.score;
             } else if (entry.zobrist == HASH_ALPHA) {
                 alpha = max(alpha, entry.score);
             } else {
@@ -23,32 +32,159 @@ MoveData Search::alphabeta(Board &b, int depth, int alpha, int beta, int *nodes)
             }
         }
         if (alpha > beta) {
-            return MoveData(entry.score, entry.move);
+            return entry.score;
         }
     }
     
-    Move bestMove;
     if (depth == 0) {
-        int score = quiesce(b, alpha, beta, nodes);
-        return MoveData(score, bestMove);
+        int score = quiesce(b, alpha, beta);
+        return score;
     }
 
     std::vector<Move> moves;
     std::vector<MoveData> moveList;
-    b.getToMove() == nWhite ? getAllMoves<nWhite>(moves, b) : getAllMoves<nBlack>(moves, b);
+    b.getToMove() == nWhite ? getLegalMoves<nWhite>(moves, b) : getLegalMoves<nBlack>(moves, b);
+
+    if (moves.empty()) { 
+        if (b.inCheck()) {
+            return -MATE_VALUE - depth;
+       } else {
+            return 0;
+       }
+    }
+
     Search::orderMoves(b, moves, moveList, ply);
     int bestVal = -MAX_VALUE;
+
+    Move currBest;
+
+    unsigned int loc = 0;
+
     for (MoveData mv : moveList) {
+        loc++;
+        if (2 * loc > moveList.size() && info->stopped) {
+            return alpha;
+        }
         Move m = mv.move;
         if (b.isLegal(m)) {
             b.makeMove(m);
-            auto searchVal = alphabeta(b, depth - 1, -beta, -alpha, nodes);
+            int searchVal = -negamax(b, depth - 1, -beta, -alpha);
             b.unmakeMove();
-            if (-searchVal.score > bestVal) {
-                bestVal = -searchVal.score;
+            if (searchVal > bestVal) {
+                bestVal = searchVal;
+                currBest = m;
+            }
+            alpha = max(searchVal, alpha);
+
+            if (alpha >= beta) {
+                b.killerMoves[ply][1] = b.killerMoves[ply][0];
+                b.killerMoves[ply][0] = m;
+                break;
+            }
+        }
+    }
+
+    entry.score = bestVal;
+    entry.depth = depth;
+    entry.move = currBest;
+
+    if (bestVal <= oldAlpha) {
+        entry.nodeType = HASH_BETA;
+    } else if (bestVal >= beta) {
+        entry.nodeType = HASH_ALPHA;
+    } else {
+        entry.nodeType = HASH_EXACT;
+    }
+
+    if (oldEntry.nodeType != HASH_EXACT && entry.nodeType == HASH_EXACT) {
+        b.setTransTable(hashKey, entry);
+    }
+    if (!(oldEntry.nodeType == HASH_EXACT && entry.nodeType != HASH_EXACT)) {
+        if (entry.depth >= oldEntry.depth) {
+            b.setTransTable(hashKey, entry);
+        }
+    }
+
+    return bestVal;
+}
+
+
+// Alpha beta search algorithm. Takes a board and a search depth, and finds the board score
+// using an implementation of alpha beta and minimax.
+int Search::alphabeta(Board &b, int depth, int alpha, int beta) {
+    info->nodes++;
+    int ply = info->depth - depth;
+    int oldAlpha = alpha;
+
+    if (b.isRep()) { // one time repetition
+        return 0;
+    }
+
+    int hashKey = b.getZobrist() % TABLE_SIZE;
+    HashEntry oldEntry = b.getTransTable(hashKey);
+    HashEntry entry = b.getTransTable(hashKey);
+
+    if (entry.nodeType != HASH_NULL && entry.depth >= depth) { // valid node
+        if (entry.zobrist == b.getZobrist()) {
+            if (entry.nodeType == HASH_EXACT) {
+                bestMove = entry.move;
+                return entry.score;
+            } else if (entry.zobrist == HASH_ALPHA) {
+                alpha = max(alpha, entry.score);
+            } else {
+                beta = max(beta, entry.score);
+            }
+        }
+        if (alpha > beta) {
+            bestMove = entry.move;
+            return entry.score;
+        }
+    }
+    
+    if (depth == 0) {
+        int score = quiesce(b, alpha, beta);
+        return score;
+    }
+
+    std::vector<Move> moves;
+    std::vector<MoveData> moveList;
+    b.getToMove() == nWhite ? getLegalMoves<nWhite>(moves, b) : getLegalMoves<nBlack>(moves, b);
+
+    if (moves.empty()) { 
+        if (b.inCheck()) {
+            return -MATE_VALUE - depth;
+       } else {
+            return 0;
+       }
+    }
+
+    Search::orderMoves(b, moves, moveList, ply);
+    int bestVal = -MAX_VALUE;
+
+    unsigned int loc = 0;
+
+    for (MoveData mv : moveList) {
+        loc++;
+        auto time = chrono::high_resolution_clock::now();
+        auto dur = time - info->startTime;
+        if (2 * loc > moveList.size() && ((info->duration != 0 && 
+                info->duration <=
+                chrono::duration_cast<std::chrono::milliseconds>(dur).count())
+                || info->stopped)) {
+            info->stopped = true;
+            return alpha;
+        }
+
+        Move m = mv.move;
+        if (b.isLegal(m)) {
+            b.makeMove(m);
+            int searchVal = -negamax(b, depth - 1, -beta, -alpha);
+            b.unmakeMove();
+            if (searchVal > bestVal) {
+                bestVal = searchVal;
                 bestMove = m;
             }
-            alpha = max(-searchVal.score, alpha);
+            alpha = max(searchVal, alpha);
 
             if (alpha >= beta) {
                 b.killerMoves[ply][1] = b.killerMoves[ply][0];
@@ -62,6 +198,9 @@ MoveData Search::alphabeta(Board &b, int depth, int alpha, int beta, int *nodes)
     }
 
     entry.score = bestVal;
+    entry.depth = depth;
+    entry.move = bestMove;
+
     if (bestVal <= oldAlpha) {
         entry.nodeType = HASH_BETA;
     } else if (bestVal >= beta) {
@@ -70,8 +209,6 @@ MoveData Search::alphabeta(Board &b, int depth, int alpha, int beta, int *nodes)
         entry.nodeType = HASH_EXACT;
     }
 
-    entry.depth = depth;
-    entry.move = bestMove;
     if (oldEntry.nodeType != HASH_EXACT && entry.nodeType == HASH_EXACT) {
         b.setTransTable(hashKey, entry);
     }
@@ -80,12 +217,13 @@ MoveData Search::alphabeta(Board &b, int depth, int alpha, int beta, int *nodes)
             b.setTransTable(hashKey, entry);
         }
     }
-    return MoveData(bestVal, bestMove);
+
+    return bestVal;
 }
 
-int Search::quiesce(Board &b, int alpha, int beta, int *nodes) {
+int Search::quiesce(Board &b, int alpha, int beta) {
     int stand_pat = b.boardScore();
-    *nodes = *nodes + 1;
+    info->nodes++;
     if (stand_pat >= beta) {
         return beta;
     }
@@ -101,7 +239,7 @@ int Search::quiesce(Board &b, int alpha, int beta, int *nodes) {
         Move m = md.move;
         if (b.isLegal(m)) {
             b.makeMove(m);
-            int score = -quiesce(b, -beta, -alpha, nodes);
+            int score = -quiesce(b, -beta, -alpha);
             b.unmakeMove();
 
             if (score >= beta) {
@@ -114,6 +252,7 @@ int Search::quiesce(Board &b, int alpha, int beta, int *nodes) {
     }
     return alpha;
 }
+
 
 void Search::orderMoves(Board& b, std::vector<Move>& moveList, std::vector<MoveData>& moveScores, int ply) {
     int hashKey = b.getZobrist() % TABLE_SIZE;

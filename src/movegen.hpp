@@ -255,5 +255,19 @@ inline void getAllMoves(vector<Move> &moveList, Board& b) {
     }
 }
 
+template<Color c>
+inline void getLegalMoves(vector<Move> &moveList, Board& b) {
+    c == nWhite ? getAllMoves<nWhite>(moveList, b) :
+        getAllMoves<nBlack>(moveList, b);
+    vector<Move>::iterator it = moveList.begin();
+    while (it != moveList.end()) {
+        if (!b.isLegal(*it)) {
+            it = moveList.erase(it);
+        } else {
+            it++;
+        }
+    }
+}
+
 
 #endif
