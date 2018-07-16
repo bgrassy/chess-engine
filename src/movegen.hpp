@@ -19,7 +19,7 @@ enum MoveType {
 
 template<Color c, MoveType mv>
 void getPawnMoves(vector<Move> &moveList, Board &b, Bitboard targets) {
-    Bitboard pawns = b.getPieces(nPawn, c);
+    Bitboard pawns = b.getPieces(c, nPawn);
     Bitboard empty = b.getEmpty();
     Bitboard other = (c == nWhite ? b.getPieces(nBlack) : b.getPieces(nWhite));
     Bitboard fourthRank = (c == nWhite ? Rank4 : Rank5);
@@ -103,7 +103,7 @@ void getPawnMoves(vector<Move> &moveList, Board &b, Bitboard targets) {
 
 template<Color c, Piece p, MoveType mv>
 void getSlidingMoves(vector<Move> &moveList, Board &b, Bitboard targets) {
-    Bitboard pieces = b.getPieces(p, c);
+    Bitboard pieces = b.getPieces(c, p);
     Bitboard occupied = b.getOccupied();
     Bitboard other = (c == nWhite ? b.getPieces(nBlack) : b.getPieces(nWhite));
 
@@ -125,7 +125,7 @@ void getSlidingMoves(vector<Move> &moveList, Board &b, Bitboard targets) {
 
 template<Color c, Piece p, MoveType mv>
 void getMoves(vector<Move> &moveList, Board &b, Bitboard targets) {
-    Bitboard pieces = b.getPieces(p, c); 
+    Bitboard pieces = b.getPieces(c, p); 
     Bitboard occupied = b.getOccupied();
     Bitboard other = (c == nWhite ? b.getPieces(nBlack) : b.getPieces(nWhite));
     
@@ -202,11 +202,11 @@ void getEvasions(vector<Move> &moveList, Board& b) {
 
     // find list of sliding checkers
     Bitboard checkers = b.getCheckers();
-    Bitboard sliders = ~b.getPieces(nPawn, other) & ~b.getPieces(nKnight, other);
+    Bitboard sliders = ~b.getPieces(other, nPawn) & ~b.getPieces(other, nKnight);
     sliders &= checkers;
     Bitboard sliderAttacks = 0;
 
-    int kingSquare = lsb(b.getPieces(nKing, c));
+    int kingSquare = lsb(b.getPieces(c, nKing));
 
     while (sliders) {
         int attackSq = pop_lsb(&sliders);

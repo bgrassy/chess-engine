@@ -38,7 +38,7 @@ struct SearchInfo {
         duration = 0;
         nodes = 0;
         infinite = false;
-        stopped = false;
+        stopped = true;
     }
 };
 
@@ -51,13 +51,20 @@ struct sortMoves {
 class Search {
     SearchInfo* info;
 public:
+    // Constructs a new search object
     Search(SearchInfo* info);
 
+    // Holds the best move for the search
     Move bestMove; 
-    int alphabeta(Board &b, int depth, int alpha, int beta);
+
+    int negamaxRoot(Board &b, int depth, int alpha, int beta);
+
     int negamax(Board &b, int depth, int alpha, int beta);
+
+    // Performs quiescence search on the given board
     int quiesce(Board &b, int alpha, int beta);
+
+    // Orders the moves in the given move list
     void orderMoves(Board& b, std::vector<Move>& moveList, std::vector<MoveData>& moveScores, int ply);
-    void getBestMove(Board& b);
 };
 #endif /*SEARCH_HPP*/

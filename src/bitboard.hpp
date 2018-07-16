@@ -76,19 +76,24 @@ enum Direction {
     SOUTH_WEST = -9
 };
 
-std::string toString(Bitboard b);
+
+// Initialize key bitboard constants
+void initBitboards();
+
+// Returns the least significant bit of the bitboard
+Square lsb(Bitboard b); 
+
+// Returns the most significant bit of the bitboard
+Square msb(Bitboard b);
+
+// Pops and returns the least significant bit of the bitboard
+Square pop_lsb(Bitboard* b);
 
 // returns the number of set bits in the bitboard
 int popcount(Bitboard b);
 
-void initBitboards();
 
-Square lsb(Bitboard b); 
-
-Square msb(Bitboard b);
-
-Square pop_lsb(Bitboard* b);
-
+// Shifts the bitboard in a given direction
 template<Direction D>
 constexpr Bitboard shift(Bitboard b) {
     return (D == NORTH ? b << 8 : 
@@ -102,18 +107,25 @@ constexpr Bitboard shift(Bitboard b) {
            b))))))));
 }
 
+
+// returns the pawn attacks for a bitboard of pawns and color
 template<Color C>
 constexpr Bitboard pawnAttacksBB(Bitboard pawns) {
     return (C == nWhite ? shift<NORTH_WEST>(pawns) | shift<NORTH_EAST>(pawns) :
             shift<SOUTH_EAST>(pawns) | shift<SOUTH_WEST>(pawns));
 }
 
+
+// Returns the sliding piece attacks for given piece from a square, given
+// occupied squares
 template<Piece P>
 constexpr Bitboard slidingAttacksBB(int sq, Bitboard occupied) {
     return (P == nBishop ? Bmagic(sq, occupied) : (P == nRook ? Rmagic(sq, occupied) :
            (P == nQueen ? Bmagic(sq, occupied) | Rmagic(sq, occupied) : 0)));
 }
 
+
+// Returns all squares attacked by all pieces of a certain type
 template<Piece P>
 inline Bitboard allSlidingAttacks(Bitboard pieces, Bitboard occupied) {
     Bitboard attacks = 0; 
@@ -124,6 +136,8 @@ inline Bitboard allSlidingAttacks(Bitboard pieces, Bitboard occupied) {
     return attacks;
 }
 
+
+// Returns a bitboard of squares attacked by knights placed on given squares
 inline Bitboard knightAttacksBB(Bitboard knights) {
     return ((knights << 17) & ~AFile) | ((knights << 10) & ~AFile &~BFile) | 
            ((knights >>  6) & ~AFile & ~BFile) | ((knights >> 15) & ~AFile)
@@ -133,6 +147,8 @@ inline Bitboard knightAttacksBB(Bitboard knights) {
 
 }
 
+
+// Returns a bitboard of squares attacked by kings placed on given squares
 inline Bitboard kingAttacksBB(Bitboard king) {
     return ((king << 1) & ~HFile) | ((king >> 1) & ~AFile)
     | ((king << 8) | (king >> 8)) | ((king << 8) | (king >> 8));

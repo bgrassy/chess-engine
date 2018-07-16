@@ -6,8 +6,9 @@ const int MAX_VALUE = 50000;
 Search::Search(SearchInfo* info) {
     this->info = info;
 }
+
 // Alpha beta search algorithm. Takes a board and a search depth, and finds the board score
-// using an implementation of alpha beta and minimax.
+// using an implementation of alpha beta and negamax.
 int Search::negamax(Board &b, int depth, int alpha, int beta) {
     info->nodes++;
     int ply = info->depth - depth;
@@ -110,15 +111,12 @@ int Search::negamax(Board &b, int depth, int alpha, int beta) {
 
 
 // Alpha beta search algorithm. Takes a board and a search depth, and finds the board score
-// using an implementation of alpha beta and minimax.
-int Search::alphabeta(Board &b, int depth, int alpha, int beta) {
+// using an implementation of alpha beta and negamax. Updates the best move in
+// the search object.
+int Search::negamaxRoot(Board &b, int depth, int alpha, int beta) {
     info->nodes++;
     int ply = info->depth - depth;
     int oldAlpha = alpha;
-
-    if (b.isRep()) { // one time repetition
-        return 0;
-    }
 
     int hashKey = b.getZobrist() % TABLE_SIZE;
     HashEntry oldEntry = b.getTransTable(hashKey);
@@ -149,14 +147,6 @@ int Search::alphabeta(Board &b, int depth, int alpha, int beta) {
     std::vector<Move> moves;
     std::vector<MoveData> moveList;
     b.getToMove() == nWhite ? getLegalMoves<nWhite>(moves, b) : getLegalMoves<nBlack>(moves, b);
-
-    if (moves.empty()) { 
-        if (b.inCheck()) {
-            return -MATE_VALUE - depth;
-       } else {
-            return 0;
-       }
-    }
 
     Search::orderMoves(b, moves, moveList, ply);
     int bestVal = -MAX_VALUE;
@@ -221,6 +211,8 @@ int Search::alphabeta(Board &b, int depth, int alpha, int beta) {
     return bestVal;
 }
 
+
+// Performs quiescence search on the given board
 int Search::quiesce(Board &b, int alpha, int beta) {
     int stand_pat = b.boardScore();
     info->nodes++;
@@ -254,6 +246,7 @@ int Search::quiesce(Board &b, int alpha, int beta) {
 }
 
 
+// Orders the moves in the given move list
 void Search::orderMoves(Board& b, std::vector<Move>& moveList, std::vector<MoveData>& moveScores, int ply) {
     int hashKey = b.getZobrist() % TABLE_SIZE;
     for (Move m : moveList) {

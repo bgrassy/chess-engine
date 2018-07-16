@@ -15,6 +15,8 @@ public:
 
     // Overloads equal operator for Move objects
     bool operator==(const Move& other);
+
+    // Overloads unequal operator for Move objects
     bool operator!=(const Move& other);
 
     friend std::ostream& operator<<(std::ostream& os, const Move& mv) {
@@ -23,7 +25,8 @@ public:
         return os;
     }
 
-    inline std::string shortStr() {
+    // Returns short string representation
+    inline std::string toStr() {
         std::string prom = "";
         if (isPromotion()) {
             int flag = getFlags() - 8;
@@ -32,7 +35,6 @@ public:
         }
         return squareNames[getFrom()] + squareNames[getTo()] + prom;
     }
-
 
     // Returns the starting square of the move
     unsigned int getFrom() const;

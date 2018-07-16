@@ -159,8 +159,6 @@ public:
      */
     Board();
 
-    void setZobrist();
-
     /**
      * Constructs a new Board object to the given position
      *
@@ -168,8 +166,13 @@ public:
      */
     Board(std::string FEN);
 
+    // Sets the board's Zobrist key to the one for the given position
+    void setZobrist();
+
+    // Sets the board's to the state desribed by the FEN
     void setPosition(std::string FEN);
 
+    // Returns the board's FEN string
     std::string getFEN() const;
 
     // Returns pieces of the given piece type
@@ -179,43 +182,19 @@ public:
     Bitboard getPieces(Color ct) const;
 
     // Returns pieces of the given piece and color
-    Bitboard getPieces(Piece pt, Color ct) const;
+    Bitboard getPieces(Color ct, Piece pt) const;
 
-    // Returns bitboard of all the white pawns
+    // Returns the piece on a given square
+    Piece getPiece(int sq) const;
+
+    // Returns the color of the piece on the given square
+    Color getColor(int sq) const;
+
+    // Returns a bitboard holding the locations of the white pawns
     Bitboard getWhitePawns() const;
 
-    // Returns bitboard of all the white knights
-    Bitboard getWhiteKnights() const;
-
-    // Returns bitboard of all the white bishops
-    Bitboard getWhiteBishops() const;
-
-    // Returns bitboard of all the white rooks
-    Bitboard getWhiteRooks() const;
-
-    // Returns bitboard of all the white queens
-    Bitboard getWhiteQueens() const;
-
-    // Returns bitboard of the white king
-    Bitboard getWhiteKing() const;
-
-    // Returns bitboard of all the black pawns
+    // Returns a bitboard holding the locations of the black pawns
     Bitboard getBlackPawns() const;
-
-    // Returns bitboard of all the black knights
-    Bitboard getBlackKnights() const;
-
-    // Returns bitboard of all the black bishops
-    Bitboard getBlackBishops() const;
-
-    // Returns bitboard of all the black rooks
-    Bitboard getBlackRooks() const;
-
-    // Returns bitboard of all the black queens
-    Bitboard getBlackQueens() const;
-
-    // Returns bitboard of the black king
-    Bitboard getBlackKing() const;
 
     // Returns occupied bitboard
     Bitboard getOccupied() const;
@@ -223,17 +202,26 @@ public:
     // Returns bitboard of empty pieces
     Bitboard getEmpty() const;
 
-    // Returns the fifty move counter
-    int getFiftyCount() const;
-
-    // Returns zobrist hash key
-    unsigned long long getZobrist() const;
-
     // Returns target of en passant
     Square enPassantTarget() const;
     
+    // Returns the castling rights of the board
+    short getCastlingRights() const;
+
     // Returns the color of the side to move
     Color getToMove() const;
+
+    // Returns the zobrist hash key
+    unsigned long long getZobrist() const;
+
+    // Returns the fifty move counter
+    int getFiftyCount() const;
+
+    // Returns whether a square is attacked by a given side
+    bool attacked(int square, Color side) const;
+
+    // Returns a color's least valuable attacker of a square
+    Square lva(Square sq, Color side) const;
 
     // Returns whether the player to move is in check or not
     bool inCheck() const;
@@ -241,52 +229,53 @@ public:
     // Returns whether the player is in double check our not
     bool doubleCheck() const;
 
+    // Returns a bitboard holding the pieces checking the king
     Bitboard getCheckers() const;
 
+    // returns all pieces that are pinned to a square by a piece of either color
     Bitboard pinnedPieces(Bitboard pinners, Square sq) const;
 
-    bool attacked(int square, Color side) const;
-
-    Square lva(Square sq, Color side) const;
-
-    int see(Square sq, Color side);
-
-    short getCastlingRights() const;
-
+    // Makes a legal move on the chessboard
     void makeMove(Move m);
 
+    // Undoes the last move
     void unmakeMove();
 
+    // Checks if a pseudo-legal move is legal
     bool isLegal(Move m) const;
 
-    Piece getPiece(int sq) const;
-
-    Color getColor(int sq) const;
-
-    void printBoard() const;
-
-    int boardScore() const;
-
-    int materialCount(Color c) const;
-
-    int getIsolatedPawns(Color c) const;
-
-    int getDoubledPawns(Color c) const;
-
-    int getBackwardPawns(Color c) const;
-
-    int mobilityScore(Color c) const;
-
-    Move strToMove(std::string s) const;
-
+    // Gets an entry from the transposition table
     HashEntry getTransTable(int key) const;
 
-    // Returns whether a position has been found before
-    bool isRep();
-
+    // Updates an entry in the transposition table
     void setTransTable(int key, HashEntry entry);
 
+    // Returns whether this position has been repeated at some point
+    bool isRep();
+
+    // Prints out the principal variation up to a given depth
     void printPV(int depth);
+
+    // Prints out the board's current state
+    void printBoard() const;
+
+    // Returns the evaluation of the board's score
+    int boardScore() const;
+
+    // Returns the amount of material for the given color
+    int materialCount(Color c) const;
+
+    // Returns the number of isp
+    int getIsolatedPawns(Color c) const;
+
+    // Returns the number of isolated pawns of the given color
+    int getDoubledPawns(Color c) const;
+
+    // Returns the number of groups of doubled pawns for the given color
+    int getBackwardPawns(Color c) const;
+
+    // Returns the mobility score for the given color
+    int mobilityScore(Color c) const;
 };
 
 #endif // #ifndef BOARD

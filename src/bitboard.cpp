@@ -57,14 +57,6 @@ Bitboard kingAttacks[64];
 Bitboard betweenBB[64][64];
 Bitboard lineBB[64][64];
 
-int popcount(Bitboard b) {
-    int count = 0;
-    while (b) {
-        count++;
-        b &= b - 1;
-    }
-    return count; 
-}
 
 // Initialize key bitboard constants
 void initBitboards() {
@@ -90,6 +82,8 @@ void initBitboards() {
         kingAttacks[i] |= (kingAttacks[i] << 8) | (kingAttacks[i] >> 8);
         kingAttacks[i] |= (b << 8) | (b >> 8);
 
+
+        // Initialize sliding bitboards
         for (int j = 0; j <= i; j++) {
             lineBB[i][j] = 0;
             betweenBB[i][j] = 0;
@@ -121,24 +115,14 @@ void initBitboards() {
     }
 }
 
-/**
- * bitScanForward
- * @author Kim Walisch (2012)
- * @param b bitboard to scan
- * @requires b != 0
- * @return index (0..63) of least significant one bit
- */
+
+// Returns the least significant bit of the bitboard
 Square lsb(Bitboard b) {
    return (Square)index64[((b ^ (b-1)) * debruijn64) >> 58];
 }
 
-/**
- * bitScanReverse
- * @authors Kim Walisch, Mark Dickinson
- * @param b bitboard to scan
- * @requires b != 0
- * @return index (0..63) of most significant one bit
- */
+
+// Returns the most significant bit of the bitboard
 Square msb(Bitboard b) {
    b |= b >> 1; 
    b |= b >> 2;
@@ -149,8 +133,21 @@ Square msb(Bitboard b) {
    return (Square)index64[(b * debruijn64) >> 58];
 }
 
+
+// Pops and returns the least significant bit of the bitboard
 Square pop_lsb(Bitboard* b) {
     Square b_lsb = lsb(*b);
     *b &= *b - 1;
     return b_lsb;
+}
+
+
+// Returns the number of set bits
+int popcount(Bitboard b) {
+    int count = 0;
+    while (b) {
+        count++;
+        b &= b - 1;
+    }
+    return count; 
 }

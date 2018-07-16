@@ -13,34 +13,50 @@ const std::string squareNames[] = {
 
 Move::Move() : Move(0, 0, 0) {}
 
+
+// Constructs a new Move object holding given squares and flags.
 Move::Move(unsigned int from, unsigned int to, unsigned int flags) {
     move = ((flags & 0xf) << 12) | ((from & 0x3f) << 6) | (to & 0x3f);
 }
 
+
+// Overloads equal operator for Move objects
 bool Move::operator==(const Move& other) {
     return other.move == move;
 }
 
+
+// Overloads unequal operator for Move objects
 bool Move::operator!=(const Move& other) {
     return other.move != move;
 }
 
+
+// Returns the starting square of the move
 unsigned int Move::getFrom() const {
     return (move >> 6) & 0x3f;
 }
 
+
+// Returns the ending square of the move
 unsigned int Move::getTo() const {
     return move & 0x3f;
 }
 
+
+// Returns the move's flags
 unsigned int Move::getFlags() const {
     return (move >> 12) & 0xf;
 }
 
+
+// Returns true iff the move is a capture
 bool Move::isCapture() const {
     return (move >> 14) & 1;
 }
 
+
+// Returns true iff the move is a promotion
 bool Move::isPromotion() const {
     return (move >> 15) & 1;
 }

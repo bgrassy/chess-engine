@@ -47,22 +47,22 @@ void UCI::loop() {
                 }
             }
         } else if (token == "go") {
-            int max = 6;
-            info.stopped = false;
-            info.duration = 0;
-            while (is >> token) {
-                if (token == "depth") {
-                    is >> max;
-                } if (token == "movetime") {
-                    is >> info.duration;
-                } if (token == "infinite") {
-                    max = 1000;
+            if (info.stopped) {
+                int max = 6;
+                info.duration = 0;
+                info.stopped = false;
+                while (is >> token) {
+                    if (token == "depth") {
+                        is >> max;
+                    } if (token == "movetime") {
+                        is >> info.duration;
+                    } if (token == "infinite") {
+                        max = 1000;
+                    }
                 }
+                thread th1(&UCI::findMove, this, max);
+                th1.detach();
             }
-            thread th1(&UCI::findMove, this, max);
-            th1.detach();
-            //swap(th1, thr);
-            //thr.join();
 
         } else if (token == "stop") {
             info.stopped = true;
@@ -95,7 +95,7 @@ void UCI::findMove(int max) {
 
         info.depth = depth;
         info.nodes = 0;
-        int score = search.alphabeta(b, depth, -MAX_VALUE, MAX_VALUE);
+        int score = search.negamaxRoot(b, depth, -MAX_VALUE, MAX_VALUE);
         bestMove = search.bestMove;
 
         if (info.stopped) {
@@ -116,7 +116,8 @@ void UCI::findMove(int max) {
     b.makeMove(bestMove);
     cout << endl;
     b.printBoard();
-    cout << "bestmove " << bestMove.shortStr() << endl;
+    cout << "bestmove " << bestMove.toStr() << endl;
+    info.stopped = true;
 }
 
 Move UCI::stringToMove(string s) {
@@ -125,7 +126,7 @@ Move UCI::stringToMove(string s) {
         getAllMoves<nBlack>(moveList, b);
 
     for (Move m : moveList) {
-        if (s == m.shortStr()) {
+        if (s == m.toStr()) {
             return m;
         }
     }
