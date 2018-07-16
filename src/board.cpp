@@ -59,7 +59,7 @@ void Board::setZobrist() {
     if (enPassant.top() != SQ_NONE) {
         hashKey ^= Zobrist::enPassant[enPassant.top() % 8];
     }
-    zobrist.push(hashKey);
+    zobrist.push_back(hashKey);
 }
 
 
@@ -106,7 +106,7 @@ void Board::setPosition(std::string FEN) {
     castling = stack<short>();
     fiftyList = stack<int>();
     capturedList = stack<Piece>();
-    zobrist = stack<unsigned long long>();
+    zobrist = vector<unsigned long long>();
     moveList = stack<Move>();
     for (int i = 0; i < 100000; i++)
         transTable[i] = HashEntry();
@@ -396,7 +396,11 @@ Color Board::getToMove() const {
 }
 
 unsigned long long Board::getZobrist() const {
-    return zobrist.top();
+    return zobrist.back();
+}
+
+int Board::getFiftyCount() const {
+    return fiftyList.top();
 }
 
 bool Board::attacked(int square, Color side) const {
@@ -420,6 +424,7 @@ bool Board::attacked(int square, Color side) const {
     if (slidingAttacksBB<nRook>(square, occupiedBB) & rooksQueens) {
         return true;
     }
+    return false;
 }
 
 Square Board::lva(Square sq, Color side) const {
@@ -456,6 +461,7 @@ Square Board::lva(Square sq, Color side) const {
     if (kingAttacks[sq] & king) {
         return lsb(king);
     }
+    return SQ_NONE;
 }
 
 bool Board::inCheck() const {
@@ -633,7 +639,7 @@ Bitboard Board::pinnedPieces(Bitboard pinners, Square sq) const {
 void Board::makeMove(Move m) {
     //if (!isLegal(m)) { return;}
     
-    unsigned long long hashKey = zobrist.top();
+    unsigned long long hashKey = zobrist.back();
     int fiftyCounter = fiftyList.top() + 1;
     if (toMove == nBlack) { 
         fullMove++;
@@ -782,7 +788,7 @@ void Board::makeMove(Move m) {
     capturedList.push(endP);
     moveList.push(m);
     fiftyList.push(fiftyCounter);
-    zobrist.push(hashKey);
+    zobrist.push_back(hashKey);
 }
 
 void Board::unmakeMove() {
@@ -803,7 +809,7 @@ void Board::unmakeMove() {
     capturedList.pop();
     moveList.pop();
     fiftyList.pop();
-    zobrist.pop();
+    zobrist.pop_back();
     int start = m.getFrom();
     int end = m.getTo();
     int flags = m.getFlags();
@@ -867,6 +873,14 @@ HashEntry Board::getTransTable(int key) const {
 
 void Board::setTransTable(int key, HashEntry entry) {
    transTable[key] = entry;
+}
+
+bool Board::isRep() {
+    unsigned long long z = zobrist.back();
+    zobrist.pop_back();
+    bool rep = find(zobrist.begin(), zobrist.end(), z) != zobrist.end();
+    zobrist.push_back(z);
+    return rep;
 }
 
 void Board::printBoard() const {
@@ -936,21 +950,11 @@ void Board::printBoard() const {
 
 int Board::boardScore() const {
     int score = 0;
-    /*
-    for (Color c : {nWhite, nBlack}) {
-        for (int p = nPawn; p <= nKing; p++) {
-            int scale = (c == nWhite ? 1 : -1);
-            Bitboard pieces = getPieces((Piece)p, c);
-            while (pieces) {
-                Square sq = pop_lsb(&pieces);
-                score += scale * PieceVals[p];
-                score += scale * pieceTable[p][sq];
-            }
-        }
-    }*/
+
     score = score + (materialCount(nWhite) - materialCount(nBlack));
-    score = score - 13 * (getIsolatedPawns(nWhite) - getIsolatedPawns(nBlack));
+    score = score - 12 * (getIsolatedPawns(nWhite) - getIsolatedPawns(nBlack));
     score = score - 18 * (getDoubledPawns(nWhite) - getDoubledPawns(nBlack));
+    score = score + (mobilityScore(nWhite) - mobilityScore(nBlack));
 
     return (toMove == nWhite ? score : -score);
 }
@@ -997,12 +1001,51 @@ int Board::getDoubledPawns(Color c) const {
     int count = 0;
     Bitboard pawns = getPieces(nPawn, c);
     for (int i = 0; i < 8; i++) {
-        Bitboard file = (0x0101010101010101 << file);
+        Bitboard file = (0x0101010101010101 << i);
         int onFile = popcount(file & pawns);
-        if (onFile > 1) {
-            count += onFile;
+        count += onFile - 1;
+    }
+    return count;
+}
+
+int Board::mobilityScore(Color c) const {
+    int count = 0;
+    for (int sq = A1; sq <= H8; sq++) {
+        if (getColor(sq) == c) {
+            Piece p = getPiece(sq);
+            Bitboard attacks;
+            if (p == nKnight) {
+                attacks = knightAttacks[sq];
+            } else if (p == nBishop) {
+                attacks = slidingAttacksBB<nBishop>(sq, occupiedBB);
+            } else if (p == nRook) {
+                attacks = slidingAttacksBB<nRook>(sq, occupiedBB);
+            } else if (p == nQueen) {
+                attacks = slidingAttacksBB<nQueen>(sq, occupiedBB);
+            } else {
+                continue;
+            }
+            attacks &= ~(getPieces(nKing, c) | getPieces(nPawn, c));
+            if (c == nWhite) {
+                attacks &= ~(shift<SOUTH_EAST>(getPieces(nPawn, nBlack)));
+                attacks &= ~(shift<SOUTH_WEST>(getPieces(nPawn, nBlack)));
+            } else if (c == nBlack) {
+                attacks &= ~(shift<NORTH_EAST>(getPieces(nPawn, nWhite)));
+                attacks &= ~(shift<NORTH_WEST>(getPieces(nPawn, nWhite)));
+            }
+
+            if (p == nKnight) {
+                count += knightMob[popcount(attacks)];
+            } else if (p == nBishop) {
+                count += bishopMob[popcount(attacks)];
+            } else if (p == nRook) {
+                count += rookMob[popcount(attacks)];
+            } else { // queen
+                count += queenMob[popcount(attacks)];
+            }
         }
     }
+
     return count;
 }
 
@@ -1010,13 +1053,15 @@ int Board::getBackwardPawns(Color c) const {
     return 0;
 }
     
-void Board::printPV() {
+void Board::printPV(int depth) {
     HashEntry tt = getTransTable(getZobrist() % 100000);
     Move m = tt.move;
-    if (tt.nodeType != HASH_NULL && !(m == Move())) {
-        makeMove(m);
-        cout << " " << tt.move.shortStr();
-        printPV();
-        unmakeMove();
+    if (tt.nodeType != HASH_NULL && !(m == Move()) && depth != 0) {
+        if (isLegal(m)) {
+            makeMove(m);
+            cout << " " << tt.move.shortStr();
+            printPV(depth - 1);
+            unmakeMove();
+        }
     }
 }

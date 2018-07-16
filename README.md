@@ -2,6 +2,7 @@
 A simple chess engine written in C++. Rewritten with the goal of having maximum code clarity.
 
 ### To-do list:
-1. Implement magic bitboards, make sure attack works
-2. Proper move generation, optimized for speed
-3. Search and other considerations
+1. Improve evaluation (king safety, etc)
+2. Find measures to improve search depth (multithreading, etc)
+
+Current magic moves implementation created by [Pradyumna Kannan](http://pradu.us/old/Nov27_2008/Buzz/research/magic/Bitboards.pdf).

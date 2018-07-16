@@ -2,6 +2,7 @@
 #define MOVE_HPP
 
 #include <iostream>
+#include <string>
 
 extern const std::string squareNames[65];
 
