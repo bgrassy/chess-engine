@@ -48,7 +48,7 @@ void UCI::loop() {
             }
         } else if (token == "go") {
             if (info.stopped) {
-                int max = 6;
+                int max = 9;
                 info.duration = 0;
                 info.stopped = false;
                 while (is >> token) {
@@ -71,10 +71,7 @@ void UCI::loop() {
             cout << endl;
         } else if (token == "quit") {
             break;
-        } else if (token == "mob") {
-            cout << b.mobilityScore(nWhite) << endl;
-            cout << b.mobilityScore(nBlack) << endl;
-        }
+        } 
     }
 }
 
@@ -107,11 +104,11 @@ void UCI::findMove(int max) {
         cout << "info depth " << depth << " nodes " << info.nodes << " score cp ";
         cout << score << " pv";
         b.printPV(depth);
-        cout << endl;
         if (chrono::duration_cast<std::chrono::milliseconds>(dur).count() != 0) {
-            cout << "info nps " << (int)(0.5 + info.nodes * 1000.0 /
-                    chrono::duration_cast<std::chrono::milliseconds>(dur).count()) << endl;
+            cout << " nps " << (int)(0.5 + info.nodes * 1000.0 /
+                    chrono::duration_cast<std::chrono::milliseconds>(dur).count());
         }
+        cout << endl; 
     }
     b.makeMove(bestMove);
     cout << endl;

@@ -26,6 +26,7 @@ extern const Bitboard Rank7;
 extern const Bitboard Rank8;
 
 extern Bitboard pawnAttacks[2][64];
+extern Bitboard pawnFrontSpan[2][64];
 extern Bitboard knightAttacks[64];
 extern Bitboard kingAttacks[64];
 extern Bitboard betweenBB[64][64];

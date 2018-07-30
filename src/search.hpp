@@ -57,9 +57,10 @@ public:
     // Holds the best move for the search
     Move bestMove; 
 
-    int negamaxRoot(Board &b, int depth, int alpha, int beta);
+    int negamax(Board &b, int depth, int alpha, int beta, bool pv, bool
+            nullOkay);
 
-    int negamax(Board &b, int depth, int alpha, int beta);
+    int negamaxRoot(Board &b, int depth, int alpha, int beta);
 
     // Performs quiescence search on the given board
     int quiesce(Board &b, int alpha, int beta);

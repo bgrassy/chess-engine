@@ -56,6 +56,7 @@ Bitboard knightAttacks[64];
 Bitboard kingAttacks[64];
 Bitboard betweenBB[64][64];
 Bitboard lineBB[64][64];
+Bitboard pawnFrontSpan[2][64];
 
 
 // Initialize key bitboard constants
@@ -81,6 +82,14 @@ void initBitboards() {
         kingAttacks[i] |= (b >> 1) & ~HFile;
         kingAttacks[i] |= (kingAttacks[i] << 8) | (kingAttacks[i] >> 8);
         kingAttacks[i] |= (b << 8) | (b >> 8);
+
+        int rank = i / 8;
+        int file = i & 7;
+        Bitboard frontSpan = 0x0101010101010101 << file;
+        if (file != 0) frontSpan |= 0x0101010101010101 << (file - 1);
+        if (file != 7) frontSpan |= 0x0101010101010101 << (file + 1);
+        pawnFrontSpan[nWhite][i] = frontSpan << (8 * (rank + 1));
+        pawnFrontSpan[nBlack][i] = frontSpan & ~(0xFFFFFFFFFFFFFFFF << (8 * rank));
 
 
         // Initialize sliding bitboards
@@ -144,6 +153,9 @@ Square pop_lsb(Bitboard* b) {
 
 // Returns the number of set bits
 int popcount(Bitboard b) {
+    if (b == 0) {
+        return 0;
+    }
     int count = 0;
     while (b) {
         count++;

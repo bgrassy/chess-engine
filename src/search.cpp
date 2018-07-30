@@ -9,14 +9,15 @@ Search::Search(SearchInfo* info) {
 
 // Alpha beta search algorithm. Takes a board and a search depth, and finds the board score
 // using an implementation of alpha beta and negamax.
-int Search::negamax(Board &b, int depth, int alpha, int beta) {
+int Search::negamax(Board &b, int depth, int alpha, int beta, bool pv, bool
+        nullOkay) {
     info->nodes++;
-    int ply = info->depth - depth;
-    int oldAlpha = alpha;
 
     if (b.isRep() || b.getFiftyCount() > 99) { // one time repetition, fifty moves
         return 0;
     }
+
+    int ply = info->depth - depth;
 
     int hashKey = b.getZobrist() % TABLE_SIZE;
     HashEntry oldEntry = b.getTransTable(hashKey);
@@ -36,6 +37,8 @@ int Search::negamax(Board &b, int depth, int alpha, int beta) {
             return entry.score;
         }
     }
+
+    int oldAlpha = alpha;
     
     if (depth == 0) {
         int score = quiesce(b, alpha, beta);
@@ -55,24 +58,50 @@ int Search::negamax(Board &b, int depth, int alpha, int beta) {
     }
 
     Search::orderMoves(b, moves, moveList, ply);
-    int bestVal = -MAX_VALUE;
 
     Move currBest;
 
     unsigned int loc = 0;
+
+    if (!pv && !b.inCheck() && nullOkay && depth > 3) {
+        if (b.materialCount(nWhite, false) + b.materialCount(nBlack, false) > 1800) {
+            b.makeNullMove(); 
+            int searchVal = -negamax(b, depth - 3, -beta, -beta + 1, false, false);
+            b.unmakeNullMove(); 
+            
+            if (searchVal >= beta) {
+                return beta;
+            }
+        }
+    }
 
     for (MoveData mv : moveList) {
         loc++;
         if (2 * loc > moveList.size() && info->stopped) {
             return alpha;
         }
+        int searchVal;
+
         Move m = mv.move;
         if (b.isLegal(m)) {
             b.makeMove(m);
-            int searchVal = -negamax(b, depth - 1, -beta, -alpha);
-            b.unmakeMove();
-            if (searchVal > bestVal) {
-                bestVal = searchVal;
+            if (loc > 1) {
+                if (loc >= 4 && depth >= 3 && !m.isCapture() &&
+                        !b.inCheck()) {
+                    searchVal = -negamax(b, depth - 2, -alpha - 1, -alpha,
+                            false, true);
+                } else {
+                    searchVal = -negamax(b, depth - 1, -alpha - 1, -alpha,
+                            false, true);
+                }
+                if (alpha < searchVal && searchVal < beta) {
+                    searchVal = -negamax(b, depth - 1, -beta, -searchVal, false, true);
+                }
+            } else {
+                searchVal = -negamax(b, depth - 1, -beta, -alpha, true, true);
+            }
+            b.unmakeMove(m);
+            if (searchVal > alpha) {
                 currBest = m;
             }
             alpha = max(searchVal, alpha);
@@ -85,13 +114,13 @@ int Search::negamax(Board &b, int depth, int alpha, int beta) {
         }
     }
 
-    entry.score = bestVal;
+    entry.score = alpha;
     entry.depth = depth;
     entry.move = currBest;
 
-    if (bestVal <= oldAlpha) {
+    if (alpha <= oldAlpha) {
         entry.nodeType = HASH_BETA;
-    } else if (bestVal >= beta) {
+    } else if (alpha >= beta) {
         entry.nodeType = HASH_ALPHA;
     } else {
         entry.nodeType = HASH_EXACT;
@@ -106,7 +135,7 @@ int Search::negamax(Board &b, int depth, int alpha, int beta) {
         }
     }
 
-    return bestVal;
+    return alpha;
 }
 
 
@@ -116,7 +145,6 @@ int Search::negamax(Board &b, int depth, int alpha, int beta) {
 int Search::negamaxRoot(Board &b, int depth, int alpha, int beta) {
     info->nodes++;
     int ply = info->depth - depth;
-    int oldAlpha = alpha;
 
     int hashKey = b.getZobrist() % TABLE_SIZE;
     HashEntry oldEntry = b.getTransTable(hashKey);
@@ -139,6 +167,8 @@ int Search::negamaxRoot(Board &b, int depth, int alpha, int beta) {
         }
     }
     
+    int oldAlpha = alpha;
+
     if (depth == 0) {
         int score = quiesce(b, alpha, beta);
         return score;
@@ -149,7 +179,6 @@ int Search::negamaxRoot(Board &b, int depth, int alpha, int beta) {
     b.getToMove() == nWhite ? getLegalMoves<nWhite>(moves, b) : getLegalMoves<nBlack>(moves, b);
 
     Search::orderMoves(b, moves, moveList, ply);
-    int bestVal = -MAX_VALUE;
 
     unsigned int loc = 0;
 
@@ -166,12 +195,20 @@ int Search::negamaxRoot(Board &b, int depth, int alpha, int beta) {
         }
 
         Move m = mv.move;
+        int searchVal;
         if (b.isLegal(m)) {
             b.makeMove(m);
-            int searchVal = -negamax(b, depth - 1, -beta, -alpha);
-            b.unmakeMove();
-            if (searchVal > bestVal) {
-                bestVal = searchVal;
+            if (loc > 1) {
+                searchVal = -negamax(b, depth - 1, -alpha - 1, -alpha, false,
+                        true);
+                if (alpha < searchVal && searchVal < beta) {
+                    searchVal = -negamax(b, depth - 1, -beta, -searchVal, false, true);
+                }
+            } else {
+                searchVal = -negamax(b, depth - 1, -beta, -alpha, true, true);
+            }
+            b.unmakeMove(m);
+            if (searchVal > alpha) {
                 bestMove = m;
             }
             alpha = max(searchVal, alpha);
@@ -183,17 +220,14 @@ int Search::negamaxRoot(Board &b, int depth, int alpha, int beta) {
             }
         }
     }
-    if (b.inCheck() && alpha == -MAX_VALUE) {
-        bestVal = -MATE_VALUE + depth;
-    }
 
-    entry.score = bestVal;
+    entry.score = alpha;
     entry.depth = depth;
     entry.move = bestMove;
 
-    if (bestVal <= oldAlpha) {
+    if (alpha <= oldAlpha) {
         entry.nodeType = HASH_BETA;
-    } else if (bestVal >= beta) {
+    } else if (alpha >= beta) {
         entry.nodeType = HASH_ALPHA;
     } else {
         entry.nodeType = HASH_EXACT;
@@ -208,7 +242,7 @@ int Search::negamaxRoot(Board &b, int depth, int alpha, int beta) {
         }
     }
 
-    return bestVal;
+    return alpha;
 }
 
 
@@ -232,7 +266,7 @@ int Search::quiesce(Board &b, int alpha, int beta) {
         if (b.isLegal(m)) {
             b.makeMove(m);
             int score = -quiesce(b, -beta, -alpha);
-            b.unmakeMove();
+            b.unmakeMove(m);
 
             if (score >= beta) {
                 return beta;

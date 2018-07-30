@@ -88,7 +88,6 @@ Board::Board() {
     enPassant.push(SQ_NONE);
     castling.push(0b1111);
     capturedList.push(PIECE_NONE);
-    moveList.push(Move(0, 0, 0)); // null move
     toMove = nWhite;
     fiftyList.push(0);
     fullMove = 1;
@@ -105,7 +104,6 @@ Board::Board() {
 Board::Board(std::string FEN) {
     initZobrist();
     setPosition(FEN);
-
 }
 
 
@@ -120,13 +118,12 @@ void Board::setPosition(std::string FEN) {
     fiftyList = stack<int>();
     capturedList = stack<Piece>();
     zobrist = vector<unsigned long long>();
-    moveList = stack<Move>();
-    for (int i = 0; i < 100000; i++)
-        transTable[i] = HashEntry();
+    //for (int i = 0; i < 100000; i++)
+    //    transTable[i] = HashEntry();
     // initializes killer move list
-    for (int i = 0; i < SEARCH_DEPTH + 1; i++)
-        for (int j = 0; j < 2; j++)
-            killerMoves[i][j] = Move();
+    //for (int i = 0; i < SEARCH_DEPTH + 1; i++)
+    //    for (int j = 0; j < 2; j++)
+    //        killerMoves[i][j] = Move();
 
     pieceBB[0] = 0; 
     pieceBB[1] = 0;
@@ -371,6 +368,17 @@ Color Board::getColor(int sq) const {
 }
 
 
+// Returns a bitboard representing the file the current square is on.
+Bitboard Board::getFile(Square sq) const {
+    return (0x0101010101010101 << (sq & 7));
+}
+
+
+// Returns a bitboard representing the rank the current square is on.
+Bitboard Board::getRank(Square sq) const {
+    return (0x11111111 << (sq / 7));
+}
+
 // Returns a bitboard holding the locations of the white pawns
 Bitboard Board::getWhitePawns() const {
     return pieceBB[nWhite] & pieceBB[2];
@@ -448,6 +456,29 @@ bool Board::attacked(int square, Color side) const {
         return true;
     }
     return false;
+}
+
+
+// Returns a bitboard holding the pieces attacking the square of the given
+// color
+Bitboard Board::getAttackers(Square sq, Color c) const {
+    Color other = (toMove == nWhite ? nBlack : nWhite);
+    Bitboard attackers = 0;
+
+    attackers |= (pawnAttacks[toMove][sq] & getPieces(other, nPawn));
+    attackers |= (knightAttacks[sq] & getPieces(other, nKnight));
+
+    Bitboard bishopsQueens = getPieces(other, nQueen) | getPieces(other,
+            nBishop);
+    attackers |= (slidingAttacksBB<nBishop>(sq, occupiedBB) & bishopsQueens);
+
+    Bitboard rooksQueens = getPieces(other, nQueen) | getPieces(other, nRook);
+    attackers |= (slidingAttacksBB<nRook>(sq, occupiedBB) & rooksQueens);
+
+    Bitboard kings = getPieces(other, nKing);
+    attackers |= (kingAttacks[sq] & kings);
+
+    return attackers;
 }
 
 
@@ -721,21 +752,19 @@ void Board::makeMove(Move m) {
     occupiedBB = (pieceBB[0] | pieceBB[1]);
     emptyBB = ~occupiedBB;
     capturedList.push(endP);
-    moveList.push(m);
     fiftyList.push(fiftyCounter);
     zobrist.push_back(hashKey);
 }
 
 
 // Undoes the last move
-void Board::unmakeMove() {
+void Board::unmakeMove(Move m) {
     // decrements full move counter
     if (toMove == nWhite) {
         fullMove--;
     }
 
     toMove = (toMove == nWhite ? nBlack : nWhite);
-    Move m = moveList.top();
         
     Piece endP = capturedList.top();
 
@@ -746,7 +775,6 @@ void Board::unmakeMove() {
     castling.pop();
     enPassant.pop();
     capturedList.pop();
-    moveList.pop();
     fiftyList.pop();
     zobrist.pop_back();
     int start = m.getFrom();
@@ -804,6 +832,32 @@ void Board::unmakeMove() {
 
     occupiedBB = (pieceBB[0] | pieceBB[1]);
     emptyBB = ~occupiedBB;
+}
+
+
+// Makes a null move (switches color) for the current position
+void Board::makeNullMove() {
+    unsigned long long hashKey = zobrist.back();
+    hashKey ^= Zobrist::blackMove;
+    
+    if (enPassant.top() != SQ_NONE) {
+        hashKey ^= Zobrist::enPassant[enPassant.top() % 8];
+    }
+    enPassant.push(SQ_NONE);
+    capturedList.push(PIECE_NONE);
+    zobrist.push_back(hashKey);
+
+    toMove = (toMove == nWhite ? nBlack : nWhite);
+}
+
+
+// Unmakes a null move for the current position
+void Board::unmakeNullMove() {
+    enPassant.pop();
+    capturedList.pop();
+    zobrist.pop_back();
+
+    toMove = (toMove == nWhite ? nBlack : nWhite);
 }
 
 
@@ -910,7 +964,7 @@ void Board::printPV(int depth) {
             makeMove(m);
             cout << " " << tt.move.toStr();
             printPV(depth - 1);
-            unmakeMove();
+            unmakeMove(m);
         }
     }
 }
@@ -985,19 +1039,36 @@ void Board::printBoard() const {
 
 // Returns the evaluation of the board's score
 int Board::boardScore() const {
-    int score = 0;
-
-    score = score + (materialCount(nWhite) - materialCount(nBlack));
-    score = score - 12 * (getIsolatedPawns(nWhite) - getIsolatedPawns(nBlack));
-    score = score - 18 * (getDoubledPawns(nWhite) - getDoubledPawns(nBlack));
-    score = score + (mobilityScore(nWhite) - mobilityScore(nBlack));
+    int endgameScore = materialCount(nWhite, true) - materialCount(nBlack,
+            true);
+    int openScore = materialCount(nWhite, false) - materialCount(nBlack,
+            false);
+    int phase = boardPhase();
+    int score = ((openScore * (256 - phase)) + (endgameScore * phase)) / 256;
+    score -= 12 * (getIsolatedPawns(nWhite) - getIsolatedPawns(nBlack));
+    score -= 15 * (getBackwardPawns(nWhite) - getBackwardPawns(nBlack));
+    score -= 18 * (getDoubledPawns(nWhite) - getDoubledPawns(nBlack));
+    score += (mobilityScore(nWhite) - mobilityScore(nBlack));
+    score += (passedScore(nWhite) - passedScore(nBlack));
+    score += (safetyScore(nWhite) - safetyScore(nBlack));
 
     return (toMove == nWhite ? score : -score);
 }
 
 
+int Board::boardPhase() const {
+    int totalPhase = 32;
+    int phase = totalPhase;
+
+    phase -= popcount(getPieces(nKnight));
+    phase -= popcount(getPieces(nBishop));
+    phase -= popcount(getPieces(nRook)) * 2;
+    phase -= popcount(getPieces(nQueen)) * 4;
+
+    return (phase * 256 + (totalPhase / 2)) / totalPhase;
+}
 // Returns the amount of material for the given color
-int Board::materialCount(Color c) const {
+int Board::materialCount(Color c, bool endgame) const {
     int score = 0;
     for (int p = nPawn; p <= nKing; p++) {
         Bitboard pieces = getPieces(c, (Piece)p);
@@ -1005,9 +1076,17 @@ int Board::materialCount(Color c) const {
             Square sq = pop_lsb(&pieces);
             score += PieceVals[p];
             if (c == nWhite) {
-                score += pieceTable[p][sq];
+                if (p == nKing && endgame) {
+                    score += kingTableEndgame[sq];
+                } else {
+                    score += pieceTable[p][sq];
+                }
             } else {
-                score += pieceTable[p][8 * (7 - sq / 8) + (sq & 7)];
+                if (p == nKing && endgame) {
+                    score += kingTableEndgame[8 * (7 - sq / 8) + (sq & 7)];
+                } else {
+                    score += pieceTable[p][8 * (7 - sq / 8) + (sq & 7)];
+                }
             }
         }
     }
@@ -1048,6 +1127,97 @@ int Board::getDoubledPawns(Color c) const {
         count += onFile - 1;
     }
     return count;
+}
+
+int Board::getBackwardPawns(Color c) const {
+    Color other = (c == nWhite ? nBlack : nWhite);
+    Bitboard pawns = getPieces(c, nPawn);
+    Bitboard attackSpan = 0;
+    Bitboard otherPawns = getPieces(other, nPawn);
+    while (pawns) {
+        Square square = pop_lsb(&pawns);
+        attackSpan |= (pawnFrontSpan[c][square] & ~getFile(square));
+    }
+    Bitboard attacks = (other == nWhite ? pawnAttacksBB<nWhite>(otherPawns) :
+            pawnAttacksBB<nBlack>(otherPawns));
+    int up = (c == nWhite ? 8 : -8);
+    return popcount((getPieces(c, nPawn) << up) & attacks & ~attackSpan);
+}
+
+
+// Returns whether a square has a candidate passer or not
+bool Board::isPasser(Square sq) const {
+    if (getPiece(sq) == nPawn) {
+        Color c = getColor(sq);
+        Color other = (c == nWhite ? nBlack : nWhite);
+
+        if (!(pawnFrontSpan[c][sq] & getPieces(other, nPawn))) {
+            return true;
+        }
+
+        if (getFile(sq) & pawnFrontSpan[c][sq] &
+                getPieces(other, nPawn)) { // no pawn on same file
+            return false; 
+        }
+
+        int up = (c == nWhite ? 8 : -8);
+
+        sq = (Square)((int)sq + up);
+        if (sq > H1 && sq < A8) {
+            int support = popcount(pawnAttacks[other][sq] & getPieces(c,
+                        nPawn));
+            int enemies = popcount(pawnAttacks[c][sq] & getPieces(other,
+                        nPawn));
+
+            if (support >= enemies) {
+                if (!(pawnFrontSpan[c][sq] & getPieces(other, nPawn))) {
+                    return true;
+                }
+            }
+            sq = (Square)((int)sq + up);
+            if (sq > H1 && sq < A8) {
+                return !(pawnFrontSpan[c][sq] & getPieces(other, nPawn));
+            }
+        }
+    }
+    return false;
+}
+
+
+// Returns the passed pawn score for the given color
+int Board::passedScore(Color c) const {
+    int score = 0;
+    int up = (c == nWhite ? 8 : -8);
+    Color other = (c == nWhite ? nBlack : nWhite);
+
+    Bitboard pawns = getPieces(c, nPawn);
+    while (pawns != 0) {
+        Square square = pop_lsb(&pawns);
+        if (isPasser(square)) {
+            int rank = square / 8;
+            if (c == nBlack) rank = 7 - rank;
+            score += passedRank[rank];
+            score += min(square % 8 + 1, 8 - square % 8);
+
+            // TODO: Add static exchange evaluation for bonus
+            if (getFile(square) & (getPieces(c, nRook) |
+                        getPieces(c, nQueen)) & pawnFrontSpan[other][square]) {
+                score += passedRank[rank] * 0.17;
+            } 
+            if (getFile(square) & (getPieces(other, nRook) |
+                        getPieces(other, nQueen)) & pawnFrontSpan[other][square]) {
+                score -= passedRank[rank] * 0.17;
+            } 
+            square = (Square)((int)square + up);
+            while (square > H1 && square < A8) {
+                if (getColor(square) == other) {
+                    score -= 5;
+                }
+                square = (Square)((int)square + up);
+            }
+        }
+    }
+    return score;
 }
 
 
@@ -1093,6 +1263,33 @@ int Board::mobilityScore(Color c) const {
     return count;
 }
 
-int Board::getBackwardPawns(Color c) const {
-    return 0;
+
+// Returns the king safety score for the given color
+int Board::safetyScore(Color c) const {
+    int count = 0;
+    Color opp = (c == nWhite ? nBlack : nWhite);
+    int up = (c == nWhite ? 8 : -8);
+
+    int kingSquare = lsb(getPieces(c, nKing));
+    Bitboard kingZone = kingAttacks[kingSquare] | (kingAttacks[kingSquare] << up);
+    kingSquare ^= sqToBB[kingSquare];
+
+    while (kingZone) {
+        Square square = pop_lsb(&kingZone);
+        Bitboard attackers = getAttackers(square, opp);
+
+        while (attackers) {
+            Square attackSq = pop_lsb(&attackers);
+            Piece p = getPiece(attackSq);
+            if (p == nKnight || p == nBishop) {
+                count += 2;
+            } else if (p == nRook) {
+                count += 3;
+            } else if (p == nQueen) {
+                count += 5;
+            }
+        }
+    }
+
+    return -safetyTable[count];
 }
