@@ -71,7 +71,7 @@ void UCI::loop() {
             cout << endl;
         } else if (token == "quit") {
             break;
-        } 
+        }
     }
 }
 
@@ -108,7 +108,7 @@ void UCI::findMove(int max) {
             cout << " nps " << (int)(0.5 + info.nodes * 1000.0 /
                     chrono::duration_cast<std::chrono::milliseconds>(dur).count());
         }
-        cout << endl; 
+        cout << endl;
     }
     b.makeMove(bestMove);
     cout << endl;
@@ -118,7 +118,7 @@ void UCI::findMove(int max) {
 }
 
 Move UCI::stringToMove(string s) {
-    vector<Move> moveList;     
+    vector<Move> moveList;
     b.getToMove() == nWhite ? getAllMoves<nWhite>(moveList, b) :
         getAllMoves<nBlack>(moveList, b);
 
@@ -128,6 +128,7 @@ Move UCI::stringToMove(string s) {
         }
     }
     cout << "INVALID" << endl;
+    // TODO: Do we want to return empty move?
     return Move();
 
 }

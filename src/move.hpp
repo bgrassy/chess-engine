@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <string>
+#include "bitboard.hpp"
 
 extern const std::string squareNames[65];
 
@@ -29,9 +30,9 @@ public:
     inline std::string toStr() {
         std::string prom = "";
         if (isPromotion()) {
-            int flag = getFlags() - 8;
-            prom = (flag == 0 ? "n" : (flag == 1 ? "b" : (flag == 2 ? "r" :
-                            (flag == 3 ? "q" : ""))));
+            int promPiece = getPromPiece();
+            prom = (promPiece == nKnight ? "n" : (promPiece == nBishop ? "b" :
+            (promPiece == nRook ? "r" : (promPiece == nQueen ? "q" : ""))));
         }
         return squareNames[getFrom()] + squareNames[getTo()] + prom;
     }
@@ -50,6 +51,9 @@ public:
 
     // Returns true iff a move is a promotion
     bool isPromotion() const;
+
+    // Gets the promotion piece. Should only be invoked if isPromotion is true.
+    unsigned int getPromPiece() const;
 };
 
 #endif

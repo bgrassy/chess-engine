@@ -37,8 +37,8 @@ void getPawnMoves(vector<Move> &moveList, Board &b, Bitboard targets) {
 
     singleMoves = (mv == EVASIONS ? singleMoves & targets : singleMoves);
     doubleMoves = (mv == EVASIONS ? doubleMoves & targets : doubleMoves);
-    attacksLeft = (mv == EVASIONS ? attacksLeft & targets : attacksLeft);
-    attacksRight = (mv == EVASIONS ? attacksRight & targets : attacksRight);
+    attacksLeft = (mv == EVASIONS ? attacksLeft & (targets | sqToBB[enPassant]) : attacksLeft);
+    attacksRight = (mv == EVASIONS ? attacksRight & (targets | sqToBB[enPassant]) : attacksRight);
 
     // en passant
     if (mv != QUIET) {

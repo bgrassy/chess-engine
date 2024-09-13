@@ -672,7 +672,7 @@ void Board::makeMove(Move m) {
     }
 
     if (prom) {
-        int promPiece = 1 + (flags & 3);
+        int promPiece = m.getPromPiece();
         pieceBB[promPiece + 2] ^= endBB;
         pieceBB[2] ^= endBB;
         hashKey ^= Zobrist::pieces[2 * startC + promPiece][end];
@@ -807,7 +807,7 @@ void Board::unmakeMove(Move m) {
     }
 
     if (prom) {
-        int promPiece = 1 + (flags & 3);
+        int promPiece = m.getPromPiece();
         pieceBB[promPiece + 2] ^= endBB;
         pieceBB[2] ^= endBB;
     } 

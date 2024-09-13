@@ -60,3 +60,9 @@ bool Move::isCapture() const {
 bool Move::isPromotion() const {
     return (move >> 15) & 1;
 }
+
+
+// Gets the promotion piece. Should only be invoked if isPromotion is true.
+unsigned int Move::getPromPiece() const {
+    return 1 + ((move >> 12) & 3);
+}
